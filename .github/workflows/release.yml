@@ -1,0 +1,64 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+    - uses: actions/checkout@v3
+      with:
+        fetch-depth: 0
+
+    - name: Use Node.js
+      uses: actions/setup-node@v3
+      with:
+        node-version: '18.x'
+        cache: 'npm'
+
+    - name: Install dependencies
+      run: npm ci
+
+    - name: Build scripts
+      run: npm run build:scripts
+
+    - name: Build and package
+      run: |
+        npm run build
+        npm run package
+
+    - name: Generate changelog
+      id: changelog
+      run: |
+        PREVIOUS_TAG=$(git describe --tags --abbrev=0 HEAD^ 2>/dev/null || echo "")
+        if [ -z "$PREVIOUS_TAG" ]; then
+          git log --pretty=format:"* %s" > RELEASE_CHANGELOG.md
+        else
+          git log --pretty=format:"* %s" $PREVIOUS_TAG..HEAD > RELEASE_CHANGELOG.md
+        fi
+        echo "version=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
+
+    - name: Create Release
+      uses: softprops/action-gh-release@v1
+      with:
+        name: Release ${{ steps.changelog.outputs.version }}
+        body_path: RELEASE_CHANGELOG.md
+        draft: false
+        prerelease: false
+        files: |
+          dist/*.mcpack
+          behavior_pack/**/*
+          resource_pack/**/*
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Update manifest versions
+      env:
+        CREATE_GIT_TAG: 'false'  # タグは既に存在するため
+      run: npm run version
