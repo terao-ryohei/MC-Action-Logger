@@ -3,12 +3,13 @@
 	"version": "1.0.0",
 	"description": "プレイヤーの行動を記録して表示するMinecraftアドオン",
 	"scripts": {
-		"build": "tsc -p tsconfig.json && node scripts/build.mjs && node scripts/makeZip.mjs",
+		"build": "tsc -p tsconfig.json && node scripts/build.mjs && node scripts/makeZip.mjs && node scripts/makeMcaddon.mjs",
 		"watch": "tsc -w -p tsconfig.json",
 		"clean": "rimraf scripts scripts.zip",
 		"package": "npm run build && node dist/scripts/build.js",
 		"dev": "npm run clean && npm run build && npm run watch",
-		"make-zip": "node scripts/makeZip.mjs"
+		"make-zip": "node scripts/makeZip.mjs",
+		"make-mcaddon": "node scripts/makeMcaddon.mjs"
 	},
 	"keywords": [
 		"minecraft",
@@ -23,6 +24,7 @@
 		"@types/archiver": "^6.0.3",
 		"@types/node": "^22.14.1",
 		"archiver": "^7.0.1",
+		"dotenv": "^16.4.5",
 		"rimraf": "^6.0.1",
 		"typescript": "^5.8.3",
 		"zip-a-folder": "^3.1.9"

@@ -12,10 +12,10 @@
 
 ### 必要なツール
 
-- Node.js (v16以降)
-- TypeScript (v5.0.0以降)
+- Node.js (v16.0.0以降)
+- TypeScript (v5.8.0以降)
 - Visual Studio Code (推奨)
-- Minecraft Bedrock Edition
+- Minecraft Bedrock Edition (v1.20.0以降)
 
 ### 初期セットアップ
 
@@ -30,18 +30,30 @@ cd minecraft-action-logger
 npm install
 ```
 
-3. VS Code拡張機能（推奨）
+3. 環境変数の設定
+```bash
+cp .env.example .env
+```
+.envファイルを作成し、以下の設定を行います：
+```
+MINECRAFT_DIR=<Minecraftのアドオン導入先ディレクトリパス>
+DEV_DIR=<開発用のディレクトリパス>
+```
+※ パスは絶対パスで指定してください
+
+4. VS Code拡張機能（推奨）
 - Minecraft Bedrock Development
 - TypeScript and JavaScript Language Features
 - ESLint
+- Biome
 
 ## ビルド手順
 
 ### 開発用ビルド
 
-1. TypeScriptのコンパイル
+1. TypeScriptのコンパイルと継続的な監視
 ```bash
-npm run build
+npm run watch
 ```
 
 2. 継続的なビルド（開発時）
@@ -58,41 +70,42 @@ npm run clean
 
 2. フルビルド
 ```bash
-npm run clean && npm run build
+npm run build
 ```
 
 ## パッケージング
 
-### ファイル構造の準備
+### ファイル構造
 
 ```
 minecraft-action-logger/
-├── behavior_pack/
-│   ├── manifest.json
-│   ├── scripts/
-│   │   └── (コンパイルされたJSファイル)
-│   └── pack_icon.png
-└── resource_pack/
-    ├── manifest.json
-    └── pack_icon.png
+├── src/
+│   ├── managers/         # 各種マネージャーモジュール
+│   ├── types.ts         # 型定義
+│   └── main.ts         # メインエントリーポイント
+├── scripts/            # ビルドスクリプト
+│   ├── build.mjs
+│   ├── makeZip.mjs
+│   └── makeMcaddon.mjs
+└── docs/              # ドキュメント
 ```
 
-### パッケージングスクリプト
+### パッケージング手順
 
-1. MCPackの作成
+1. ZIPファイルの作成
 ```bash
-npm run package
+npm run make-zip
 ```
 
-このコマンドは以下の処理を実行します：
-- TypeScriptのビルド
-- 必要なファイルのコピー
-- .mcpackファイルの作成
+2. MCAddonの作成
+```bash
+npm run make-mcaddon
+```
 
 ### 成果物
 
-- `dist/action-logger.mcpack`: 配布用パッケージ
-- `dist/action-logger-debug.mcpack`: デバッグ用パッケージ
+- `scripts.zip`: スクリプトファイル
+- `.mcaddon`: Minecraft用アドオンパッケージ
 
 ## 配布準備
 
@@ -103,98 +116,49 @@ npm run package
 - package.jsonの更新
 - CHANGELOG.mdの更新
 
-2. リリースタグの作成
-```bash
-npm run release
-```
+2. リリースの作成
+- GitHubのリリースページから新規リリースを作成
+- タグを付与
+- ビルド済みの.mcaddonファイルを添付
 
 ### 配布チェックリスト
 
-- [ ] すべてのテストが通過
+- [ ] すべてのビルドが成功
 - [ ] バージョン番号が正しく更新
 - [ ] マニフェストファイルが最新
 - [ ] ドキュメントが更新済み
-- [ ] CHANGELOG.mdが更新済み
 - [ ] pack_icon.pngが含まれている
-- [ ] ライセンス情報が正しい
-
-## CI/CD設定
-
-### GitHub Actions
-
-```yaml
-name: Build and Package
-
-on:
-  push:
-    branches: [ main ]
-  pull_request:
-    branches: [ main ]
-
-jobs:
-  build:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v2
-      - name: Setup Node.js
-        uses: actions/setup-node@v2
-        with:
-          node-version: '16'
-      - name: Install dependencies
-        run: npm ci
-      - name: Build
-        run: npm run build
-      - name: Package
-        run: npm run package
-      - name: Upload artifact
-        uses: actions/upload-artifact@v2
-        with:
-          name: action-logger-mcpack
-          path: dist/action-logger.mcpack
-```
-
-### リリース自動化
-
-1. バージョンバンプ
-```bash
-npm version patch|minor|major
-```
-
-2. リリースノート生成
-```bash
-npm run generate-notes
-```
-
-3. GitHub Releaseの作成
-```bash
-npm run create-release
-```
+- [ ] 依存関係が正しく設定されている
+- [ ] .envが正しく設定されている
 
 ## トラブルシューティング
 
 ### よくある問題
 
 1. ビルドエラー
-- TypeScriptバージョンの確認
+- TypeScriptバージョンの確認（v5.8.0以降が必要）
 - 依存関係の再インストール
 - tsconfig.jsonの設定確認
+- .envファイルの設定確認
 
 2. パッケージングエラー
-- ファイル構造の確認
-- パーミッションの確認
+- scriptsディレクトリの存在確認
+- 必要なファイルの配置確認
 - manifest.jsonの構文確認
+- 環境変数（MINECRAFT_DIR, DEV_DIR）の設定確認
 
-3. テストエラー
-- Minecraftバージョンの確認
+3. Minecraft関連の問題
+- Minecraftバージョンの確認（v1.20.0以降が必要）
+- @minecraft/server, @minecraft/server-uiパッケージのバージョン確認
 - 実験的機能の有効化確認
-- ログファイルの確認
+- Minecraftディレクトリのパス設定確認
 
 ### サポート
 
 問題が解決しない場合は、以下を確認してください：
 - GitHubのIssues
 - プロジェクトのWiki
-- コミュニティフォーラム
+- Minecraft Bedrock開発者フォーラム
 
 ## ライセンス
 

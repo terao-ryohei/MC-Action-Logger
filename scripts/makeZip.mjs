@@ -1,14 +1,22 @@
 import { zip } from "zip-a-folder";
 import { join } from "node:path";
+import { config } from "dotenv";
 
-// Windowsのファイルパスを指定（WSL環境から/mnt/c/でアクセス）
-const WIN_OUTPUT_DIR = "/mnt/c/Users/Ryohei/work/MineCraftScript";
-const WIN_OUTPUT_DIR2 =
-  "/mnt/c/Users/Ryohei/AppData/Local/Packages/Microsoft.MinecraftUWP_8wekyb3d8bbwe/LocalState/games/com.mojang/development_behavior_packs";
+// .envファイルから環境変数を読み込む
+config();
+
+const { WIN_OUTPUT_DIR, WIN_OUTPUT_DIR2 } = process.env;
+
+if (!WIN_OUTPUT_DIR || !WIN_OUTPUT_DIR2) {
+  console.error(
+    "必要な環境変数が設定されていません。.envファイルを確認してください。",
+  );
+  process.exit(1);
+}
 
 async function makeZip() {
   try {
-    const sourcePath = "./scripts";
+    const sourcePath = "./build";
     const outputPath = join(WIN_OUTPUT_DIR, "ActionLogger.zip");
 
     await zip(sourcePath, outputPath);

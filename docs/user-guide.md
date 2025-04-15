@@ -163,3 +163,43 @@ A: 以下のカテゴリが利用できます：
 ### コマンドが機能しない場合
 1. 実験的なゲームプレイが有効になっているか確認
 2. アドオンが正しく適用されているか確認
+
+## 8. ビルド手順
+
+### 環境変数の設定
+
+1. プロジェクトのルートディレクトリに `.env` ファイルを作成します。
+
+2. 以下の環境変数を設定します：
+
+```
+WIN_OUTPUT_DIR=C:/Path/To/Your/Minecraft/development_behavior_packs
+WIN_OUTPUT_DIR2=C:/Path/To/Your/Minecraft/development_resource_packs
+```
+
+必要な環境変数の説明：
+- `WIN_OUTPUT_DIR`: ビヘイビアパックの出力先ディレクトリ
+- `WIN_OUTPUT_DIR2`: リソースパックの出力先ディレクトリ
+
+設定例：
+```
+WIN_OUTPUT_DIR=C:/Users/YourName/AppData/Local/Packages/Microsoft.MinecraftUWP_8wekyb3d8bbwe/LocalState/games/com.mojang/development_behavior_packs
+WIN_OUTPUT_DIR2=C:/Users/YourName/AppData/Local/Packages/Microsoft.MinecraftUWP_8wekyb3d8bbwe/LocalState/games/com.mojang/development_resource_packs
+```
+
+### 環境変数設定のトラブルシューティング
+
+1. .envファイルが認識されない場合：
+   - ファイル名が正確に `.env` であることを確認（.env.txtではない）
+   - ファイルがプロジェクトのルートディレクトリにあることを確認
+   - ファイルを一度開いて保存し直す
+
+2. パスが正しく認識されない場合：
+   - パスの区切り文字が正しいことを確認（Windowsでも / を使用）
+   - パスの最後にスラッシュを付けない
+   - パスに日本語や特殊文字が含まれていないことを確認
+
+3. ビルドエラーが発生する場合：
+   - 指定したディレクトリが実際に存在することを確認
+   - 指定したディレクトリへの書き込み権限があることを確認
+   - Minecraftが実行中の場合は一度終了してから再試行

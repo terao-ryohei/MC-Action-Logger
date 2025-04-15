@@ -1,14 +1,24 @@
-# Minecraft Action Logger アドオン
+# Minecraft Action Logger (マインクラフトアクションロガー)
 
-プレイヤーの行動を記録して表示するMinecraft統合版アドオンです。
+[English](#english) | [日本語](#japanese)
 
-## 機能
+<a name="japanese"></a>
 
-- プレイヤーの移動、ジャンプ、攻撃、インタラクションを自動記録
-- 時計アイテムによるゲーム開始/停止
-- 3分間のプレイ記録
-- 結果表示UI（紙アイテム）
-- デバッグモードとパフォーマンスモニタリング
+# 【日本語】マインクラフトアクションロガー
+
+## 概要
+
+このアドオンは、Minecraftでのプレイヤーの行動を自動的に記録し、ゲーム内での活動を分かりやすく確認できるようにするツールです。時計アイテムによるゲーム管理と、詳細なログ記録機能を提供します。
+
+## 主な機能
+
+- ブロックの使用履歴の記録
+- アイテムの作成・使用の追跡
+- ゲーム内イベントのログ保存
+- 活動の統計情報の表示
+- ゲーム時間の管理と表示
+- エンティティの状態変化の記録
+- プレイヤーの状態変化の追跡
 
 ## 必要条件
 
@@ -23,61 +33,79 @@
 3. アドオンがインポートされることを確認
 4. ワールドの設定で本アドオンを有効化
 
-## 基本的な使用方法
+## 基本的な使い方
 
-1. ゲームの開始
+### ゲームの開始と終了
+
+1. ゲームの開始:
    - 時計アイテムを入手
    - 右クリックでゲーム開始
-   - 3分間のカウントダウンが開始
+   - 自動的にタイマーが開始
+   - 画面右上に残り時間が表示
 
-2. プレイ中
-   - 自動的に以下のアクションが記録されます：
-     - 移動（1m以上の移動）
-     - ジャンプ
-     - エンティティへの攻撃
-     - ブロックとのインタラクション
+2. ゲームの終了:
+   - 時計アイテムを右クリック
+   - または、タイマーが0になると自動終了
 
-3. 結果の確認
-   - ゲーム終了時に紙アイテムが配布
-   - 紙アイテムを右クリックで結果表示
-   - プレイヤーごとの詳細な記録を確認可能
+### アイテムの使用方法
 
-## 管理者向けコマンド
+- 時計アイテム:
+  - 右クリック: ゲームの開始/終了
+  - スニーク+右クリック: 残り時間の表示
 
-管理者タグ（`admin`または`op`）を持つプレイヤーのみが使用可能です。
+- 紙アイテム（ログブック）:
+  - 右クリック: ログの表示
 
-- `!actionlogger:debugmode`
-  - デバッグモードの切り替え
-  - 画面上部に残り時間とパフォーマンス情報を表示
+## コマンド一覧
 
-- `!actionlogger:debug`
-  - 現在のゲーム状態を表示
-  - プレイヤー数、記録件数などを確認可能
+### 基本コマンド
+```
+/scriptevent scriptlog:show [件数]    - 最新のログを表示（デフォルト10件）
+/scriptevent scriptlog:history        - 全てのログを表示
+/scriptevent scriptlog:stats         - 統計情報を表示
+```
 
-- `!actionlogger:performance`
-  - パフォーマンスメトリクスを表示
-  - Tick時間、平均処理時間を確認可能
+### 検索・フィルター
+```
+/scriptevent scriptlog:search <キーワード>  - キーワード検索
+/scriptevent scriptlog:filter <カテゴリ>   - カテゴリでフィルター
+/scriptevent scriptlog:time <開始> <終了>  - 時間範囲で表示
+/scriptevent scriptlog:player <名前>      - プレイヤーで絞り込み
+```
 
-- `!actionlogger:cleanup`
-  - 手動でクリーンアップを実行
-  - ゲーム状態とログをリセット
+### 管理コマンド
+```
+/scriptevent scriptlog:pause   - ログ記録を一時停止
+/scriptevent scriptlog:resume  - ログ記録を再開
+/scriptevent scriptlog:clear   - ログをクリア
+```
 
 ## トラブルシューティング
 
-1. ゲームが開始できない
-   - 時計アイテムが正しく動作しない場合は、一度ワールドを再読み込み
-   - 既にゲームが実行中でないか確認
+### ログが表示されない場合
+1. 紙アイテムを一度インベントリから外し、再度取得
+2. `/scriptevent scriptlog:resume` コマンドでログ記録を再開
+3. ワールドを一度セーブして再ログイン
 
-2. ログが記録されない
-   - デバッグモードで動作状態を確認
-   - ゲームが正しく開始されているか確認
+### タイマーが動作しない場合
+1. 時計アイテムを一度インベントリから外し、再度取得
+2. ワールドを再読み込み
+3. 管理者に確認を依頼
 
-3. UIが表示されない
-   - 実験的ゲームプレイが有効化されているか確認
-   - アドオンが正しく適用されているか確認
+### コマンドが機能しない場合
+1. 実験的なゲームプレイが有効になっているか確認
+2. アドオンが正しく適用されているか確認
 
-## 注意事項
+## 開発者向け情報
 
+### 環境設定
+1. `.env`ファイルをプロジェクトルートに作成:
+```
+WIN_OUTPUT_DIR=C:/Path/To/Your/Minecraft/development_behavior_packs
+WIN_OUTPUT_DIR2=C:/Path/To/Your/Minecraft/development_resource_packs
+```
+
+### 注意事項
 - 一度に1つのゲームのみ実行可能
 - プレイヤーの退出時にデータは保持
 - 全プレイヤーが退出するとゲームは自動的に終了
@@ -86,3 +114,118 @@
 ## ライセンス
 
 MITライセンスで提供されています。詳細は[LICENSE](LICENSE)ファイルを参照してください。
+
+---
+
+<a name="english"></a>
+
+# [English] Minecraft Action Logger
+
+## Overview
+
+This addon is a tool that automatically records player actions in Minecraft and makes it easy to review in-game activities. It provides game management through a clock item and detailed logging functionality.
+
+## Key Features
+
+- Record block usage history
+- Track item crafting and usage
+- Store in-game event logs
+- Display activity statistics
+- Manage and display game time
+- Record entity state changes
+- Track player state changes
+
+## Requirements
+
+- Minecraft Bedrock Edition 1.20.0 or later
+- Base game version: 1.20.60 or later
+- Experimental Gameplay: Enable `Beta APIs`
+
+## Installation
+
+1. Download the `.mcaddon` file
+2. Double-click to open Minecraft
+3. Confirm the addon is imported
+4. Enable the addon in world settings
+
+## Basic Usage
+
+### Starting and Ending a Game
+
+1. Starting the game:
+   - Obtain the clock item
+   - Right-click to start the game
+   - Timer starts automatically
+   - Remaining time shown in top-right
+
+2. Ending the game:
+   - Right-click the clock item
+   - Or automatically ends when timer reaches 0
+
+### Using Items
+
+- Clock item:
+  - Right-click: Start/end game
+  - Sneak+right-click: Display remaining time
+
+- Paper item (Log book):
+  - Right-click: Display logs
+
+## Commands
+
+### Basic Commands
+```
+/scriptevent scriptlog:show [count]    - Show recent logs (default 10)
+/scriptevent scriptlog:history        - Show all logs
+/scriptevent scriptlog:stats         - Show statistics
+```
+
+### Search & Filter
+```
+/scriptevent scriptlog:search <keyword>  - Keyword search
+/scriptevent scriptlog:filter <category> - Filter by category
+/scriptevent scriptlog:time <start> <end> - Show by time range
+/scriptevent scriptlog:player <name>     - Filter by player
+```
+
+### Management Commands
+```
+/scriptevent scriptlog:pause   - Pause log recording
+/scriptevent scriptlog:resume  - Resume log recording
+/scriptevent scriptlog:clear   - Clear logs
+```
+
+## Troubleshooting
+
+### If Logs Are Not Displaying
+1. Remove and re-obtain the paper item from inventory
+2. Use `/scriptevent scriptlog:resume` to restart logging
+3. Save the world and re-login
+
+### If Timer Is Not Working
+1. Remove and re-obtain the clock item from inventory
+2. Reload the world
+3. Contact administrator
+
+### If Commands Are Not Working
+1. Verify experimental gameplay is enabled
+2. Verify addon is properly applied
+
+## Developer Information
+
+### Environment Setup
+1. Create `.env` file in project root:
+```
+WIN_OUTPUT_DIR=C:/Path/To/Your/Minecraft/development_behavior_packs
+WIN_OUTPUT_DIR2=C:/Path/To/Your/Minecraft/development_resource_packs
+```
+
+### Important Notes
+- Only one game can run at a time
+- Data is retained when players leave
+- Game automatically ends when all players exit
+- Large amounts of logging may impact performance
+
+## License
+
+Available under the MIT License. See [LICENSE](LICENSE) file for details.

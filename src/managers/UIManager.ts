@@ -42,9 +42,9 @@ export class UIManager {
    */
   private initializeEventHandlers(): void {
     const callback = this.handleItemUse.bind(this);
-    world.beforeEvents.itemUse.subscribe(callback);
+    world.afterEvents.itemUse.subscribe(callback);
     this.eventUnsubscribe = () => {
-      world.beforeEvents.itemUse.unsubscribe(callback);
+      world.afterEvents.itemUse.unsubscribe(callback);
     };
   }
 
@@ -54,14 +54,12 @@ export class UIManager {
   private handleItemUse(event: {
     itemStack?: { typeId: string };
     source: MCPlayer;
-    cancel: boolean;
   }): void {
     try {
       if (event.itemStack?.typeId === PAPER_ITEM_ID) {
         const player = event.source;
         if (player instanceof MCPlayer) {
           this.showLogUI(player);
-          event.cancel = true;
         }
       }
     } catch (error) {
