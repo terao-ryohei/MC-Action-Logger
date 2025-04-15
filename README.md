@@ -1,10 +1,10 @@
-# Minecraft Action Logger (マインクラフトアクションロガー)
+# Minecraft Action Logger (マインクラフト行動ログ作成アドオン)
 
 [English](#english) | [日本語](#japanese)
 
 <a name="japanese"></a>
 
-# 【日本語】マインクラフトアクションロガー
+# 【日本語】マインクラフト行動ログ作成アドオン
 
 ## 概要
 
@@ -41,17 +41,15 @@
    - 時計アイテムを入手
    - 右クリックでゲーム開始
    - 自動的にタイマーが開始
-   - 画面右上に残り時間が表示
+   - 画面下部に残り時間が表示
 
 2. ゲームの終了:
-   - 時計アイテムを右クリック
-   - または、タイマーが0になると自動終了
+   - タイマーが0になると自動終了
 
 ### アイテムの使用方法
 
 - 時計アイテム:
-  - 右クリック: ゲームの開始/終了
-  - スニーク+右クリック: 残り時間の表示
+  - 右クリック: ゲームの開始
 
 - 紙アイテム（ログブック）:
   - 右クリック: ログの表示
@@ -82,19 +80,10 @@
 
 ## トラブルシューティング
 
-### ログが表示されない場合
-1. 紙アイテムを一度インベントリから外し、再度取得
-2. `/scriptevent scriptlog:resume` コマンドでログ記録を再開
-3. ワールドを一度セーブして再ログイン
-
-### タイマーが動作しない場合
-1. 時計アイテムを一度インベントリから外し、再度取得
-2. ワールドを再読み込み
-3. 管理者に確認を依頼
-
 ### コマンドが機能しない場合
 1. 実験的なゲームプレイが有効になっているか確認
 2. アドオンが正しく適用されているか確認
+3. クリエイター機能のコンテンツログの履歴を開き、エラーがないか確認
 
 ## 開発者向け情報
 
@@ -156,17 +145,15 @@ This addon is a tool that automatically records player actions in Minecraft and 
    - Obtain the clock item
    - Right-click to start the game
    - Timer starts automatically
-   - Remaining time shown in top-right
+   - Remaining time shown in bottom
 
 2. Ending the game:
-   - Right-click the clock item
-   - Or automatically ends when timer reaches 0
+   - Automatically ends when timer reaches 0
 
 ### Using Items
 
 - Clock item:
-  - Right-click: Start/end game
-  - Sneak+right-click: Display remaining time
+  - Right-click: Start game
 
 - Paper item (Log book):
   - Right-click: Display logs
@@ -197,19 +184,10 @@ This addon is a tool that automatically records player actions in Minecraft and 
 
 ## Troubleshooting
 
-### If Logs Are Not Displaying
-1. Remove and re-obtain the paper item from inventory
-2. Use `/scriptevent scriptlog:resume` to restart logging
-3. Save the world and re-login
-
-### If Timer Is Not Working
-1. Remove and re-obtain the clock item from inventory
-2. Reload the world
-3. Contact administrator
-
 ### If Commands Are Not Working
 1. Verify experimental gameplay is enabled
 2. Verify addon is properly applied
+3. Open "Creator Settings" and open content-logs, then check error
 
 ## Developer Information
 
