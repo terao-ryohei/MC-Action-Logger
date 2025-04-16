@@ -7,10 +7,15 @@ package-lock.json
 
 # Build
 build/
+dist/
+*.tsbuildinfo
 
 # Logs
 logs/
 *.log
+
+# Testing
+coverage/
 
 # IDE
 .vscode/

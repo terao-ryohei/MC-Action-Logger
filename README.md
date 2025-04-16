@@ -1,209 +1,119 @@
-# Minecraft Action Logger (マインクラフト行動ログ作成アドオン)
+# ActionLogger
 
-[English](#english) | [日本語](#japanese)
+[English](./docs/en/README.md) | 日本語
 
-<a name="japanese"></a>
+ActionLoggerは、柔軟で拡張性の高いロギングライブラリです。イベントベースのログ記録、強力なフィルタリング機能、多様なエクスポート形式をサポートしています。
 
-# 【日本語】マインクラフト行動ログ作成アドオン
+## 特徴
 
-## 概要
+- 💡 6段階のログレベル（DEBUG、VERBOSE、INFO、WARN、ERROR、FATAL）
+- 🔍 柔軟なフィルタリングシステム
+- 📤 JSON/CSVエクスポート対応
+- 🔄 自動エクスポート機能
+- 🎯 メタデータサポート
+- 🛠️ カスタマイズ可能なフィルターとエクスポーター
 
-このアドオンは、Minecraftでのプレイヤーの行動を自動的に記録し、ゲーム内での活動を分かりやすく確認できるようにするツールです。時計アイテムによるゲーム管理と、詳細なログ記録機能を提供します。
+## インストール
 
-## 主な機能
+npmを使用してインストール：
 
-- ブロックの使用履歴の記録
-- アイテムの作成・使用の追跡
-- ゲーム内イベントのログ保存
-- 活動の統計情報の表示
-- ゲーム時間の管理と表示
-- エンティティの状態変化の記録
-- プレイヤーの状態変化の追跡
+```bash
+npm install @minecraft/action-logger
+```
 
-## 必要条件
+Yarnを使用してインストール：
 
-- Minecraft 統合版 1.20.0以降
-- ベースゲームバージョン: 1.20.60以降
-- 実験的ゲームプレイ: `Beta APIs`を有効化
-
-## インストール方法
-
-1. `.mcaddon`ファイルをダウンロード
-2. ダブルクリックでMinecraftを開く
-3. アドオンがインポートされることを確認
-4. ワールドの設定で本アドオンを有効化
+```bash
+yarn add @minecraft/action-logger
+```
 
 ## 基本的な使い方
 
-### ゲームの開始と終了
+```typescript
+import { CoreLogger, LogLevel } from '@minecraft/action-logger';
 
-1. ゲームの開始:
-   - 時計アイテムを入手
-   - 右クリックでゲーム開始
-   - 自動的にタイマーが開始
-   - 画面下部に残り時間が表示
+// ロガーのインスタンスを作成
+const logger = new CoreLogger({
+  defaultLevel: LogLevel.INFO,
+  bufferSize: 1000,
+  autoExport: {
+    format: "json",
+    interval: 60000, // 1分ごとに自動エクスポート
+    path: "./logs"
+  }
+});
 
-2. ゲームの終了:
-   - タイマーが0になると自動終了
+// イベントを記録
+logger.log({
+  type: "user_action",
+  level: LogLevel.INFO,
+  details: {
+    action: "login",
+    userId: "12345"
+  },
+  metadata: {
+    browser: "Chrome",
+    version: "89.0.4389.82"
+  }
+});
 
-### アイテムの使用方法
+// フィルターを使用してイベントを取得
+const events = logger.getEvents();
 
-- 時計アイテム:
-  - 右クリック: ゲームの開始
+// イベントをエクスポート
+const jsonData = await logger.export({ format: "json" });
 
-- 紙アイテム（ログブック）:
-  - 右クリック: ログの表示
-
-## コマンド一覧
-
-### 基本コマンド
-```
-/scriptevent scriptlog:show [件数]    - 最新のログを表示（デフォルト10件）
-/scriptevent scriptlog:history        - 全てのログを表示
-/scriptevent scriptlog:stats         - 統計情報を表示
-```
-
-### 検索・フィルター
-```
-/scriptevent scriptlog:search <キーワード>  - キーワード検索
-/scriptevent scriptlog:filter <カテゴリ>   - カテゴリでフィルター
-/scriptevent scriptlog:time <開始> <終了>  - 時間範囲で表示
-/scriptevent scriptlog:player <名前>      - プレイヤーで絞り込み
-```
-
-### 管理コマンド
-```
-/scriptevent scriptlog:pause   - ログ記録を一時停止
-/scriptevent scriptlog:resume  - ログ記録を再開
-/scriptevent scriptlog:clear   - ログをクリア
+// 使用終了時にリソースを解放
+logger.dispose();
 ```
 
-## トラブルシューティング
+## 高度な使用例
 
-### コマンドが機能しない場合
-1. 実験的なゲームプレイが有効になっているか確認
-2. アドオンが正しく適用されているか確認
-3. クリエイター機能のコンテンツログの履歴を開き、エラーがないか確認
+フィルターの使用：
 
-## 開発者向け情報
+```typescript
+import { TimeRangeFilter, LogLevelFilter, EventTypeFilter } from '@minecraft/action-logger';
 
-### 環境設定
-1. `.env`ファイルをプロジェクトルートに作成:
+// 時間範囲フィルター
+const timeFilter = new TimeRangeFilter(
+  Date.now() - 3600000, // 1時間前
+  Date.now()
+);
+
+// ログレベルフィルター
+const levelFilter = new LogLevelFilter(LogLevel.WARN);
+
+// イベントタイプフィルター
+const typeFilter = new EventTypeFilter(['user_action', 'system_event']);
+
+// フィルターを追加
+logger.addFilter(timeFilter);
+logger.addFilter(levelFilter);
+logger.addFilter(typeFilter);
 ```
-WIN_OUTPUT_DIR=C:/Path/To/Your/Minecraft/development_behavior_packs
-WIN_OUTPUT_DIR2=C:/Path/To/Your/Minecraft/development_resource_packs
+
+カスタムエクスポート：
+
+```typescript
+const customExport = await logger.export({
+  format: "custom",
+  config: {
+    exportFunction: (events) => {
+      // カスタムフォーマットでイベントを変換
+      return events.map(e => `${e.timestamp}: ${e.type} - ${e.details}`).join('\n');
+    }
+  }
+});
 ```
 
-### 注意事項
-- 一度に1つのゲームのみ実行可能
-- プレイヤーの退出時にデータは保持
-- 全プレイヤーが退出するとゲームは自動的に終了
-- 大量のログが記録される場合、パフォーマンスに影響する可能性あり
+## API ドキュメント
+
+詳細なAPIドキュメントは[こちら](./docs/api.md)をご覧ください。
+
+## 使用例とサンプルコード
+
+より詳細な使用例とサンプルコードは[こちら](./docs/examples.md)をご覧ください。
 
 ## ライセンス
 
-MITライセンスで提供されています。詳細は[LICENSE](LICENSE)ファイルを参照してください。
-
----
-
-<a name="english"></a>
-
-# [English] Minecraft Action Logger
-
-## Overview
-
-This addon is a tool that automatically records player actions in Minecraft and makes it easy to review in-game activities. It provides game management through a clock item and detailed logging functionality.
-
-## Key Features
-
-- Record block usage history
-- Track item crafting and usage
-- Store in-game event logs
-- Display activity statistics
-- Manage and display game time
-- Record entity state changes
-- Track player state changes
-
-## Requirements
-
-- Minecraft Bedrock Edition 1.20.0 or later
-- Base game version: 1.20.60 or later
-- Experimental Gameplay: Enable `Beta APIs`
-
-## Installation
-
-1. Download the `.mcaddon` file
-2. Double-click to open Minecraft
-3. Confirm the addon is imported
-4. Enable the addon in world settings
-
-## Basic Usage
-
-### Starting and Ending a Game
-
-1. Starting the game:
-   - Obtain the clock item
-   - Right-click to start the game
-   - Timer starts automatically
-   - Remaining time shown in bottom
-
-2. Ending the game:
-   - Automatically ends when timer reaches 0
-
-### Using Items
-
-- Clock item:
-  - Right-click: Start game
-
-- Paper item (Log book):
-  - Right-click: Display logs
-
-## Commands
-
-### Basic Commands
-```
-/scriptevent scriptlog:show [count]    - Show recent logs (default 10)
-/scriptevent scriptlog:history        - Show all logs
-/scriptevent scriptlog:stats         - Show statistics
-```
-
-### Search & Filter
-```
-/scriptevent scriptlog:search <keyword>  - Keyword search
-/scriptevent scriptlog:filter <category> - Filter by category
-/scriptevent scriptlog:time <start> <end> - Show by time range
-/scriptevent scriptlog:player <name>     - Filter by player
-```
-
-### Management Commands
-```
-/scriptevent scriptlog:pause   - Pause log recording
-/scriptevent scriptlog:resume  - Resume log recording
-/scriptevent scriptlog:clear   - Clear logs
-```
-
-## Troubleshooting
-
-### If Commands Are Not Working
-1. Verify experimental gameplay is enabled
-2. Verify addon is properly applied
-3. Open "Creator Settings" and open content-logs, then check error
-
-## Developer Information
-
-### Environment Setup
-1. Create `.env` file in project root:
-```
-WIN_OUTPUT_DIR=C:/Path/To/Your/Minecraft/development_behavior_packs
-WIN_OUTPUT_DIR2=C:/Path/To/Your/Minecraft/development_resource_packs
-```
-
-### Important Notes
-- Only one game can run at a time
-- Data is retained when players leave
-- Game automatically ends when all players exit
-- Large amounts of logging may impact performance
-
-## License
-
-Available under the MIT License. See [LICENSE](LICENSE) file for details.
+MITライセンスの下で公開されています。詳細は[LICENSE](./LICENSE)ファイルをご覧ください。
