@@ -1,163 +1,210 @@
-# Minecraft スクリプトアクションロガー ユーザーガイド
+# @minecraft-script/action-logger ユーザーガイド
 
 ## 1. はじめに
 
-このアドオンは、Minecraftでのプレイヤーの行動を自動的に記録し、ゲーム内での活動を分かりやすく確認できるようにするツールです。
+このライブラリは、TypeScriptアプリケーションのための柔軟で拡張性の高いロギングソリューションです。特にMinecraftのスクリプト開発向けに最適化されていますが、一般的なアプリケーションでも利用可能です。
 
 主な機能：
-- ブロックの使用履歴の記録
-- アイテムの作成・使用の追跡
-- ゲーム内イベントのログ保存
-- 活動の統計情報の表示
-- ゲーム時間の管理と表示
+- イベントベースのログ記録
+- 柔軟なフィルタリング機能
+- JSON/CSVエクスポート
+- メタデータサポート
+- 自動エクスポート機能
 
-## 2. ゲームの開始と終了方法
+## 2. インストールと設定
 
-### 開始方法
-1. Minecraftを起動する
-2. このアドオンを適用したワールドを開始する
-3. 時計アイテムを持って右クリックしてゲームを開始する
-   - 自動的にタイマーが開始されます
-   - 画面右上に残り時間が表示されます
-   - 残り時間が10秒を切ると警告音が鳴ります
+### インストール
+```bash
+npm install @minecraft-script/action-logger
+```
 
-### 終了方法
-- タイマーが0になると自動的に終了します
+### 基本設定
+```typescript
+import { CoreLogger, LogLevel } from '@minecraft-script/action-logger';
 
-## 3. アイテムの使い方
+const logger = new CoreLogger({
+  defaultLevel: LogLevel.INFO,
+  bufferSize: 1000,
+  autoExport: {
+    format: "json",
+    interval: 60000, // 1分ごとに自動エクスポート
+    path: "./logs"
+  }
+});
+```
 
-### 時計アイテム
-- 右クリック：ゲームの開始
+## 3. イベントの記録
 
-### 紙アイテム（ログブック）
-- 右クリック：ログの表示
+### 基本的なイベント記録
+```typescript
+// 一般的なイベントの記録
+logger.log({
+  type: "app.general",
+  level: LogLevel.INFO,
+  details: {
+    action: "startup",
+    version: "1.0.0"
+  }
+});
 
-### ブロックの操作
-以下のブロックの使用が自動的に記録されます：
+// エラーの記録
+logger.log({
+  type: "app.error",
+  level: LogLevel.ERROR,
+  details: {
+    message: "接続エラー",
+    code: "E_CONN_FAILED"
+  },
+  metadata: {
+    stack: new Error().stack
+  }
+});
 
-- 作業台：アイテムのクラフト
-- チェスト・樽：アイテムの収納/取り出し
-- かまど・高炉：アイテムの精錬
-- エンチャント台：エンチャントの付与
-- 金床：アイテムの修繕/名前変更
-- 醸造台：ポーションの作成
-- 石切台：ブロックの加工
-- コンポスター：アイテムの堆肥化
+// 詳細な情報の記録
+logger.log({
+  type: "app.debug",
+  level: LogLevel.DEBUG,
+  details: {
+    function: "processData",
+    input: { /* 入力データ */ },
+    output: { /* 出力データ */ }
+  }
+});
+```
 
-各ブロックの操作は自動的に記録され、以下の情報が保存されます：
-- 使用したアイテムの数と種類
-- 作業の進捗状況
-- 作業にかかった時間
-- 作業の結果（成功/失敗）
+## 4. イベントの取得とフィルタリング
 
-## 4. ログの見方
+### 基本的なイベント取得
+```typescript
+// 全てのイベントを取得
+const allEvents = logger.getEvents();
 
-### コマンドでのログ確認
-ゲーム内で以下のコマンドを使用できます（`/scriptevent` コマンドを使用）：
+// 最新の10件を取得
+const recentEvents = logger.getEvents({ limit: 10 });
 
-基本コマンド：
-- `/scriptevent scriptlog:show [件数]` - 最新のログを表示（デフォルト10件）
-- `/scriptevent scriptlog:history` - 全てのログを表示
-- `/scriptevent scriptlog:stats` - 統計情報を表示
+// 特定のレベルのイベントを取得
+const errorEvents = logger.getEvents({
+  level: LogLevel.ERROR
+});
+```
 
-検索・フィルター：
-- `/scriptevent scriptlog:search <キーワード>` - キーワード検索
-- `/scriptevent scriptlog:filter <カテゴリ>` - カテゴリでフィルター
-- `/scriptevent scriptlog:time <開始Unix秒> <終了Unix秒>` - 時間範囲で表示
-- `/scriptevent scriptlog:player <名前>` - プレイヤーで絞り込み
+### フィルターの使用
+```typescript
+import {
+  TimeRangeFilter,
+  LogLevelFilter,
+  EventTypeFilter
+} from '@minecraft-script/action-logger';
 
-管理コマンド：
-- `/scriptevent scriptlog:pause` - ログ記録を一時停止
-- `/scriptevent scriptlog:resume` - ログ記録を再開
-- `/scriptevent scriptlog:clear` - ログをクリア
+// 複数のフィルターを組み合わせる
+logger.addFilter(new TimeRangeFilter(
+  Date.now() - 3600000,
+  Date.now()
+));
+logger.addFilter(new LogLevelFilter(LogLevel.WARN));
+logger.addFilter(new EventTypeFilter(['app.error']));
 
-## 5. イベントの種類と意味
+// フィルター適用後のイベント取得
+const filteredEvents = logger.getEvents();
+```
 
-記録される主なイベント：
+### カスタムフィルターの作成
+```typescript
+import { BaseFilter } from '@minecraft-script/action-logger';
 
-1. クラフト関連
-   - アイテムの作成開始/完了
+// カスタムフィルターの実装
+class CustomFilter extends BaseFilter {
+  constructor(private pattern: RegExp) {
+    super();
+  }
 
-2. 収納関連
-   - アイテムの収納
-   - アイテムの取り出し
+  apply(event: LogEvent): boolean {
+    return this.pattern.test(event.type);
+  }
+}
 
-3. 加工関連
-   - 精錬の開始/完了
-   - エンチャントの付与
-   - アイテムの修繕
+// カスタムフィルターの使用
+const customFilter = new CustomFilter(/^app\./);
+logger.addFilter(customFilter);
+```
 
-4. エンティティのライフサイクル
-   - エンティティの死亡（種類、位置、死因、加害者情報）
-   ※プレイヤーは含まれません
+## 5. エクスポート機能
 
-5. プレイヤーの状態変化
-   - 体力の変化（現在値/最大値）
-   - 空腹度の変化（満腹度/満腹度上限）
-   - 経験値の変化（レベル、進捗）
-   - ステータス効果の追加（効果の種類、強さ、持続時間）
-   - ステータス効果の消失
+### 基本的なエクスポート
+```typescript
+// JSONエクスポート
+const jsonData = await logger.export({ format: "json" });
 
-6. その他
-   - ブロックの設置/破壊
-   - アイテムの使用
+// CSVエクスポート
+const csvData = await logger.export({ format: "csv" });
+```
+
+### 自動エクスポート設定
+```typescript
+const logger = new CoreLogger({
+  autoExport: {
+    format: "json",
+    interval: 60000, // 1分ごと
+    path: "./logs",
+    filename: "app-{date}-{index}.json"
+  }
+});
+```
+
+### カスタムエクスポート
+```typescript
+const customData = await logger.export({
+  format: "custom",
+  config: {
+    transform: (event) => ({
+      timestamp: new Date(event.timestamp).toISOString(),
+      message: `${event.type}: ${JSON.stringify(event.details)}`,
+      level: event.level
+    }),
+    format: (events) => JSON.stringify(events, null, 2)
+  }
+});
+```
 
 ## 6. よくある質問
 
 Q: ログは自動的に保存されますか？
-A: はい、全ての活動はゲーム時間内であれば自動的に保存されます。
+A: `autoExport` オプションを設定することで、指定した間隔で自動的にログを保存できます。
 
-Q: 過去のログを見ることはできますか？
-Q: エンティティの状態変化はリアルタイムで記録されますか？
-A: はい、エンティティのスポーンと死亡は発生時に即座に記録されます。ただし、プレイヤーのスポーン/死亡は記録対象外です。
+Q: 過去のログを取得できますか？
+A: はい、`getEvents()` メソッドにフィルターを適用することで、過去のログを取得できます。`TimeRangeFilter`を使用すると、特定の期間のログを取得できます。
 
-Q: プレイヤーの状態変化はどのくらいの頻度で記録されますか？
-A: 体力、空腹度、経験値は1秒ごとにチェックされ、変化があった場合のみ記録されます。ステータス効果の追加は即座に記録され、効果の消失は1秒以内に検知されます。
-
-Q: 古いエンティティのログも保存されますか？
-A: はい、他のログと同様に最新1000件まで保存されます。`/scriptevent scriptlog:filter entity` コマンドでエンティティ関連のログのみを表示できます。
-
-A: はい、紙アイテムを使用するか `/scriptevent scriptlog:history` コマンドで確認できます。
+Q: イベントの詳細な情報は記録できますか？
+A: はい、`details`フィールドと`metadata`フィールドを使用して、任意の詳細情報を記録できます。
 
 Q: ログの容量制限はありますか？
-A: 最新1000件の操作が保存されます。古いログは自動的に削除されます。
+A: `bufferSize`オプションで指定した件数までメモリに保持され、それを超えると古いログは自動的に削除されます。ただし、エクスポートされたログはこの制限の影響を受けません。
 
-Q: プレイヤーごとの活動を分けて見ることはできますか？
-A: はい、`/scriptevent scriptlog:player <プレイヤー名>` で特定のプレイヤーの活動のみを表示できます。
+Q: フィルターを使用するとパフォーマンスに影響がありますか？
+A: フィルターは効率的に実装されており、通常のログ記録には大きな影響を与えません。ただし、複雑なフィルターを多数使用する場合は、パフォーマンスに影響を与える可能性があります。
 
-Q: ログ機能を一時的に無効にできますか？
-A: はい、`/scriptevent scriptlog:pause` で一時停止、`/scriptevent scriptlog:resume` で再開できます。
+Q: フィルター設定は保存されますか？
+A: フィルター設定はメモリ上で管理されます。永続化が必要な場合は、ロガーの初期化時に再度フィルターを設定する必要があります。
 
-Q: タイマーを途中で延長できますか？
-A: タイマー関連のコマンドは現在実装されていません。
-
-Q: ログの検索で使えるカテゴリは何がありますか？
-A: 以下のカテゴリが利用できます：
-- craft（クラフト関連）
-- storage（収納関連）
-- smelt（精錬関連）
-- enchant（エンチャント関連）
-- repair（修繕関連）
-- brew（醸造関連）
-- block（ブロック操作）
-- move（移動関連）
-- entity（エンティティのスポーン/死亡）
-- player_state（プレイヤーの状態変化）
+Q: カスタムのログ形式を定義できますか？
+A: はい、`export`メソッドの`format: "custom"`オプションを使用して、独自のフォーマットを定義できます。
 
 ## 7. トラブルシューティング
 
-### ログが表示されない場合
-1. 紙アイテムを一度インベントリから外し、再度取得する
-2. `/scriptevent scriptlog:resume` コマンドでログ記録を再開（一時停止していた場合）
-3. ワールドを一度セーブして再ログイン
+### ログが記録されない場合
+1. ログレベルの設定を確認する（デフォルトレベル以上のログのみ記録される）
+2. フィルターの設定を確認する
+3. バッファサイズの設定を確認する
 
-### タイマーが動作しない場合
-1. 時計アイテムを一度インベントリから外し、再度取得する
-2. 管理者に確認を依頼
+### エクスポートが失敗する場合
+1. 出力先ディレクトリの書き込み権限を確認
+2. ディスク容量を確認
+3. ファイル名に使用できない文字が含まれていないか確認
 
-### コマンドが機能しない場合
-1. 実験的なゲームプレイが有効になっているか確認
-2. アドオンが正しく適用されているか確認
+### メモリ使用量が増加する場合
+1. `bufferSize`の設定を見直す
+2. 定期的なエクスポートを設定する
+3. 不要なフィルターを削除する
 
 ## 8. ビルド手順
 

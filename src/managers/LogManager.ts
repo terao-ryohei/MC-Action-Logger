@@ -2,13 +2,17 @@ import { world, Player, system, type Vector3 } from "@minecraft/server";
 import type { EntityHurtAfterEvent } from "@minecraft/server";
 import type { GameManager } from "./GameManager";
 import {
+  ScoreboardFilterManager,
+  type IScoreboardControlledFilter,
+} from "../core/filter/scoreboard-filter";
+import { CompositeLogFilter } from "../core/filter/composite-filter";
+import {
+  type LogFilter,
   type PlayerLog,
   type PlayerAction,
-  type LogFilter,
-  ActionType,
-  LogLevel,
   type LogSettings,
-  CompositeLogFilter,
+  LogLevel,
+  ActionType,
 } from "../types";
 
 /**
@@ -27,6 +31,7 @@ export class LogManager {
   private logs: Map<string, PlayerLog>;
   private settings: LogSettings;
   private compositeFilter: CompositeLogFilter;
+  private scoreboardFilterManager: ScoreboardFilterManager;
   private lastJumpTime: Map<string, number>;
   private lastPositions: Map<string, { x: number; y: number; z: number }>;
   private movementCheckRunId: number | undefined;
@@ -42,14 +47,16 @@ export class LogManager {
 
     // フィルター初期化
     this.compositeFilter = new CompositeLogFilter();
+    this.scoreboardFilterManager = new ScoreboardFilterManager();
+    this.initializeScoreboardFilters();
 
     // ログ設定の初期化
     this.settings = {
       defaultLevel: LogLevel.INFO,
       displayLevel: LogLevel.INFO,
-      actionTypeSettings: new Map([
-        [ActionType.MOVE, LogLevel.ACTIVITY], // 移動は通常アクティビティ
-        [ActionType.JUMP, LogLevel.ACTIVITY], // ジャンプは通常アクティビティ
+      actionTypeSettings: new Map<ActionType, LogLevel>([
+        [ActionType.MOVE, LogLevel.DEBUG], // 移動は通常アクティビティ
+        [ActionType.JUMP, LogLevel.DEBUG], // ジャンプは通常アクティビティ
         [ActionType.ATTACK, LogLevel.INFO], // 攻撃は重要情報
         [ActionType.INTERACT, LogLevel.INFO], // インタラクトは重要情報
       ]),
@@ -61,6 +68,20 @@ export class LogManager {
     } catch (error) {
       console.error("LogManagerの初期化中にエラーが発生しました:", error);
       throw error;
+    }
+  }
+
+  /**
+   * スコアボードフィルターの初期化
+   */
+  private async initializeScoreboardFilters(): Promise<void> {
+    try {
+      await this.scoreboardFilterManager.initializeScoreboards();
+    } catch (error) {
+      console.error(
+        "スコアボードフィルターの初期化中にエラーが発生しました:",
+        error,
+      );
     }
   }
 
@@ -301,7 +322,9 @@ export class LogManager {
   public getFilteredAllLogs(): PlayerLog[] {
     return this.getAllLogs().map((log) => ({
       ...log,
-      actions: log.actions.filter((action) => this.shouldDisplayAction(action)),
+      actions: log.actions.filter((action: PlayerAction) =>
+        this.shouldDisplayAction(action),
+      ),
     }));
   }
 
@@ -312,7 +335,9 @@ export class LogManager {
     const log = this.getPlayerLog(playerId);
     return {
       ...log,
-      actions: log.actions.filter((action) => this.shouldDisplayAction(action)),
+      actions: log.actions.filter((action: PlayerAction) =>
+        this.shouldDisplayAction(action),
+      ),
     };
   }
 
@@ -331,12 +356,33 @@ export class LogManager {
    */
   public addFilter(filter: LogFilter): void {
     this.compositeFilter.addFilter(filter);
+
+    // スコアボード制御可能なフィルターの場合は登録
+    if (this.isScoreboardControlledFilter(filter)) {
+      this.scoreboardFilterManager.registerFilter(filter);
+    }
+  }
+
+  /**
+   * フィルターがスコアボード制御可能かチェック
+   */
+  private isScoreboardControlledFilter(
+    filter: LogFilter,
+  ): filter is IScoreboardControlledFilter & LogFilter {
+    return (
+      "filterName" in filter &&
+      "enable" in filter &&
+      "disable" in filter &&
+      "getStatus" in filter
+    );
   }
 
   /**
    * リソースの解放
    */
   public dispose(): void {
+    // スコアボードフィルターの状態を更新
+    this.scoreboardFilterManager.updateFilters();
     try {
       if (this.movementCheckRunId !== undefined) {
         system.clearRun(this.movementCheckRunId);

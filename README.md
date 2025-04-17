@@ -1,8 +1,8 @@
-# ActionLogger
+# @minecraft-script/action-logger
 
 [English](./docs/en/README.md) | 日本語
 
-ActionLoggerは、柔軟で拡張性の高いロギングライブラリです。イベントベースのログ記録、強力なフィルタリング機能、多様なエクスポート形式をサポートしています。
+TypeScriptで書かれた柔軟で拡張性の高いロギングライブラリです。イベントベースのログ記録、強力なフィルタリング機能、多様なエクスポート形式をサポートし、特にMinecraftのスクリプト開発に最適化されています。
 
 ## 特徴
 
@@ -12,25 +12,26 @@ ActionLoggerは、柔軟で拡張性の高いロギングライブラリです�
 - 🔄 自動エクスポート機能
 - 🎯 メタデータサポート
 - 🛠️ カスタマイズ可能なフィルターとエクスポーター
+- 🎮 Minecraft Script APIとの統合
 
 ## インストール
 
 npmを使用してインストール：
 
 ```bash
-npm install @minecraft/action-logger
+npm install @minecraft-script/action-logger
 ```
 
 Yarnを使用してインストール：
 
 ```bash
-yarn add @minecraft/action-logger
+yarn add @minecraft-script/action-logger
 ```
 
 ## 基本的な使い方
 
 ```typescript
-import { CoreLogger, LogLevel } from '@minecraft/action-logger';
+import { CoreLogger, LogLevel } from '@minecraft-script/action-logger';
 
 // ロガーのインスタンスを作成
 const logger = new CoreLogger({
@@ -43,25 +44,42 @@ const logger = new CoreLogger({
   }
 });
 
-// イベントを記録
+// Minecraftのシステムイベントを記録
 logger.log({
-  type: "user_action",
+  type: "minecraft.system",
   level: LogLevel.INFO,
   details: {
-    action: "login",
-    userId: "12345"
+    event: "worldInitialize",
+    dimension: "overworld"
   },
   metadata: {
-    browser: "Chrome",
-    version: "89.0.4389.82"
+    gameMode: "creative",
+    serverVersion: "1.20.0"
+  }
+});
+
+// プレイヤーのアクションを記録
+logger.log({
+  type: "minecraft.player",
+  level: LogLevel.INFO,
+  details: {
+    action: "blockPlace",
+    player: "Steve",
+    block: "minecraft:stone"
   }
 });
 
 // フィルターを使用してイベントを取得
-const events = logger.getEvents();
+const events = logger.getEvents({
+  type: "minecraft.player",
+  level: LogLevel.INFO
+});
 
-// イベントをエクスポート
+// イベントをJSONとしてエクスポート
 const jsonData = await logger.export({ format: "json" });
+
+// CSVとしてエクスポート
+const csvData = await logger.export({ format: "csv" });
 
 // 使用終了時にリソースを解放
 logger.dispose();
@@ -90,6 +108,29 @@ const typeFilter = new EventTypeFilter(['user_action', 'system_event']);
 logger.addFilter(timeFilter);
 logger.addFilter(levelFilter);
 logger.addFilter(typeFilter);
+```
+
+スコアボードフィルター：
+
+```typescript
+import { ScoreboardFilterManager, ScoreboardEventTypeFilter } from '@minecraft/action-logger';
+
+// スコアボードフィルターマネージャーを初期化
+const filterManager = new ScoreboardFilterManager();
+await filterManager.initializeScoreboards();
+
+// イベントタイプフィルターをスコアボード制御下に置く
+const blockFilter = new ScoreboardEventTypeFilter(
+  "block",  // スコアボード上での識別子
+  ["block_broken", "block_placed"]
+);
+
+// フィルターを登録
+logger.addFilter(blockFilter);
+
+// ゲーム内でフィルターを制御
+// /scoreboard players set block log_filters 1  # 有効化
+// /scoreboard players set block log_filters 0  # 無効化
 ```
 
 カスタムエクスポート：

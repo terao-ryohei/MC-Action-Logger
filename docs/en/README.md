@@ -7,7 +7,7 @@ ActionLogger is a flexible and extensible logging library that supports event-ba
 ## Features
 
 - 💡 6 Log Levels (DEBUG, VERBOSE, INFO, WARN, ERROR, FATAL)
-- 🔍 Flexible Filtering System
+- 🔍 Flexible Filtering System (with Scoreboard Integration)
 - 📤 JSON/CSV Export Support
 - 🔄 Auto-Export Functionality
 - 🎯 Metadata Support
@@ -90,6 +90,29 @@ const typeFilter = new EventTypeFilter(['user_action', 'system_event']);
 logger.addFilter(timeFilter);
 logger.addFilter(levelFilter);
 logger.addFilter(typeFilter);
+```
+
+Scoreboard filters:
+
+```typescript
+import { ScoreboardFilterManager, ScoreboardEventTypeFilter } from '@minecraft/action-logger';
+
+// Initialize scoreboard filter manager
+const filterManager = new ScoreboardFilterManager();
+await filterManager.initializeScoreboards();
+
+// Create an event type filter with scoreboard control
+const blockFilter = new ScoreboardEventTypeFilter(
+  "block",  // Identifier in scoreboard
+  ["block_broken", "block_placed"]
+);
+
+// Register the filter
+logger.addFilter(blockFilter);
+
+// Control filters in-game using scoreboard commands:
+// /scoreboard players set block log_filters 1  # Enable
+// /scoreboard players set block log_filters 0  # Disable
 ```
 
 Custom export:

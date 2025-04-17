@@ -1,4 +1,4 @@
-# Action Logger ビルドガイド
+# @minecraft-script/action-logger ビルドガイド
 
 ## 目次
 
@@ -10,19 +10,19 @@
 
 ## 開発環境のセットアップ
 
-### 必要なツール
+### 必要な環境
 
-- Node.js (v16.0.0以降)
+- Node.js (v18.0.0以降)
 - TypeScript (v5.8.0以降)
+- Git
 - Visual Studio Code (推奨)
-- Minecraft Bedrock Edition (v1.20.0以降)
 
 ### 初期セットアップ
 
 1. リポジトリのクローン
 ```bash
-git clone https://github.com/terao-ryohei/minecraft-action-logger.git
-cd minecraft-action-logger
+git clone https://github.com/minecraft-script/action-logger.git
+cd action-logger
 ```
 
 2. 依存関係のインストール
@@ -30,137 +30,121 @@ cd minecraft-action-logger
 npm install
 ```
 
-3. 環境変数の設定
-```bash
-cp .env.example .env
-```
-.envファイルを作成し、以下の設定を行います：
-```
-MINECRAFT_DIR=<Minecraftのアドオン導入先ディレクトリパス>
-DEV_DIR=<開発用のディレクトリパス>
-```
-※ パスは絶対パスで指定してください
-
-4. VS Code拡張機能（推奨）
-- Minecraft Bedrock Development
+3. VS Code拡張機能（推奨）
 - TypeScript and JavaScript Language Features
 - ESLint
 - Biome
+- Jest Runner
 
-## ビルド手順
+## 開発とビルド
 
 ### 開発用ビルド
 
-1. TypeScriptのコンパイルと継続的な監視
+1. TypeScriptのコンパイルと監視
 ```bash
 npm run watch
 ```
 
-2. 継続的なビルド（開発時）
+2. 単体テストの実行（監視モード）
 ```bash
-npm run dev
+npm run test:watch
 ```
 
-### クリーンビルド
+### 本番用ビルド
 
-1. ビルドディレクトリのクリーンアップ
-```bash
-npm run clean
-```
-
-2. フルビルド
+1. ビルドの実行
 ```bash
 npm run build
 ```
 
-## パッケージング
+2. テストの実行
+```bash
+npm run test
+```
+
+3. Lint チェック
+```bash
+npm run lint
+```
+
+## パッケージの公開
 
 ### ファイル構造
 
 ```
-minecraft-action-logger/
+action-logger/
 ├── src/
-│   ├── managers/         # 各種マネージャーモジュール
-│   ├── types.ts         # 型定義
-│   └── main.ts         # メインエントリーポイント
-├── scripts/            # ビルドスクリプト
-│   ├── build.mjs
-│   ├── makeZip.mjs
-│   └── makeMcaddon.mjs
-└── docs/              # ドキュメント
+│   ├── core/          # コアロギング機能
+│   ├── filters/       # フィルター実装
+│   ├── exporters/     # エクスポーター実装
+│   └── types.ts      # 型定義
+├── test/            # テストファイル
+├── docs/           # ドキュメント
+└── examples/      # 使用例
 ```
 
-### パッケージング手順
-
-1. ZIPファイルの作成
-```bash
-npm run make-zip
-```
-
-2. MCAddonの作成
-```bash
-npm run make-mcaddon
-```
-
-### 成果物
-
-- `scripts.zip`: スクリプトファイル
-- `.mcaddon`: Minecraft用アドオンパッケージ
-
-## 配布準備
-
-### バージョン管理
+### 公開準備
 
 1. バージョン番号の更新
-- manifest.jsonの更新
-- package.jsonの更新
-- CHANGELOG.mdの更新
+```bash
+npm version patch  # パッチバージョンの更新
+# または
+npm version minor  # マイナーバージョンの更新
+# または
+npm version major  # メジャーバージョンの更新
+```
 
-2. リリースの作成
-- GitHubのリリースページから新規リリースを作成
-- タグを付与
-- ビルド済みの.mcaddonファイルを添付
+2. チェンジログの更新
+```bash
+# CHANGELOG.mdを編集
+git add CHANGELOG.md
+git commit -m "docs: update changelog for version x.x.x"
+```
 
-### 配布チェックリスト
+3. パッケージの公開
+```bash
+npm publish --access public
+```
 
-- [ ] すべてのビルドが成功
-- [ ] バージョン番号が正しく更新
-- [ ] マニフェストファイルが最新
-- [ ] ドキュメントが更新済み
-- [ ] pack_icon.pngが含まれている
-- [ ] 依存関係が正しく設定されている
-- [ ] .envが正しく設定されている
+### 公開チェックリスト
+
+- [ ] すべてのテストが成功していること
+- [ ] Lintチェックが通過していること
+- [ ] バージョン番号が適切に更新されていること
+- [ ] CHANGELOGが更新されていること
+- [ ] README.mdが最新であること
+- [ ] パッケージ内容が正しいこと（package.jsonのfilesフィールド）
+- [ ] TypeScriptの型定義が正しく生成されていること
+- [ ] 不要なファイルが含まれていないこと（.gitignore、tsconfig.tsbuildinfo等）
 
 ## トラブルシューティング
 
 ### よくある問題
 
 1. ビルドエラー
-- TypeScriptバージョンの確認（v5.8.0以降が必要）
+- TypeScriptバージョンの確認
 - 依存関係の再インストール
 - tsconfig.jsonの設定確認
-- .envファイルの設定確認
+- Node.jsバージョンの確認
 
-2. パッケージングエラー
-- scriptsディレクトリの存在確認
-- 必要なファイルの配置確認
-- manifest.jsonの構文確認
-- 環境変数（MINECRAFT_DIR, DEV_DIR）の設定確認
+2. テストエラー
+- Jest設定の確認
+- テストカバレッジの確認
+- モックの設定確認
 
-3. Minecraft関連の問題
-- Minecraftバージョンの確認（v1.20.0以降が必要）
-- @minecraft/server, @minecraft/server-uiパッケージのバージョン確認
-- 実験的機能の有効化確認
-- Minecraftディレクトリのパス設定確認
+3. 公開エラー
+- npmログイン状態の確認
+- パッケージ名の重複確認
+- アクセス権限の確認
 
 ### サポート
 
 問題が解決しない場合は、以下を確認してください：
 - GitHubのIssues
 - プロジェクトのWiki
-- Minecraft Bedrock開発者フォーラム
+- npmのドキュメント
 
 ## ライセンス
 
 このプロジェクトはMITライセンスの下で公開されています。
-詳細は[LICENSE](../LICENSE)ファイルを参照してください。
+詳細は[LICENSE](./LICENSE)ファイルを参照してください。
