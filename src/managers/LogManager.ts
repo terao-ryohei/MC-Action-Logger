@@ -223,6 +223,7 @@ export class LogManager {
     block: { typeId: string; location: Vector3 };
   }): void {
     try {
+      console.log(JSON.stringify(event));
       if (!this.gameManager.getGameState().isRunning) return;
 
       // BlockInteractionLogger に処理を委譲

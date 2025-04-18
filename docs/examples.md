@@ -281,3 +281,212 @@ function analyzePerformance(startTime: number, endTime: number) {
 ```
 
 これらの例は、ActionLoggerの主要な機能の使用方法を示しています。実際の使用時には、アプリケーションの要件に応じてこれらの例を組み合わせたり、カスタマイズしたりすることができます。
+
+## 設定とUIの実装例
+
+### 基本的な設定例
+
+```typescript
+import { CoreLogger, LogLevel } from '@minecraft/action-logger';
+
+// 開発環境向け設定
+const devLogger = new CoreLogger({
+  timer: {
+    logCollectionInterval: 500,    // 高頻度のログ収集
+    eventProcessDelay: 50,         // 最小限の遅延
+    autoSaveInterval: 30000        // 30秒ごとの自動保存
+  },
+  input: {
+    throttleTime: 100,            // 短い制限時間
+    debounceTime: 150             // 短い待機時間
+  },
+  ui: {
+    fontSize: 14,
+    maxLogLines: 2000,
+    animations: true
+  },
+  debug: true                     // デバッグモード有効
+});
+
+// 本番環境向け設定
+const prodLogger = new CoreLogger({
+  timer: {
+    logCollectionInterval: 2000,   // 低頻度のログ収集
+    eventProcessDelay: 200,        // 長めの遅延
+    autoSaveInterval: 300000       // 5分ごとの自動保存
+  },
+  input: {
+    throttleTime: 500,            // 長めの制限時間
+    debounceTime: 600             // 長めの待機時間
+  },
+  ui: {
+    fontSize: 12,
+    maxLogLines: 1000,
+    animations: false
+  },
+  debug: false                    // デバッグモード無効
+});
+```
+
+### UIカスタマイズの実装例
+
+```typescript
+import { CoreLogger, UIManager } from '@minecraft/action-logger';
+
+// UIマネージャーの設定とイベントハンドリング
+const logger = new CoreLogger();
+const ui = new UIManager({
+  theme: {
+    backgroundColor: "#2d2d2d",
+    textColor: "#e0e0e0",
+    accentColor: "#0078d4"
+  },
+  fontSize: 14,
+  maxLogLines: 1000,
+  animations: true,
+  timestampFormat: "short"
+});
+
+// イベントリスナーの設定
+ui.on("logToggle", (event) => {
+  const { isVisible } = event.detail;
+  console.log(`ログ表示: ${isVisible ? "表示" : "非表示"}`);
+});
+
+ui.on("filterApply", (event) => {
+  const { filter } = event.detail;
+  logger.applyFilter(filter);
+});
+
+ui.on("themeChange", (event) => {
+  const { theme } = event.detail;
+  saveUserPreferences({ theme });
+});
+
+// テーマの動的更新
+function updateThemeForTimeOfDay() {
+  const hour = new Date().getHours();
+  if (hour >= 18 || hour < 6) {
+    // 夜間テーマ
+    ui.updateTheme({
+      backgroundColor: "#1a1a1a",
+      textColor: "#d4d4d4",
+      accentColor: "#565656"
+    });
+  } else {
+    // 日中テーマ
+    ui.updateTheme({
+      backgroundColor: "#ffffff",
+      textColor: "#000000",
+      accentColor: "#0066cc"
+    });
+  }
+}
+```
+
+### タイマーとログ表示の連携例
+
+```typescript
+import { CoreLogger, LogLevel } from '@minecraft/action-logger';
+
+class GameLogger {
+  private logger: CoreLogger;
+  private updateInterval: number;
+  
+  constructor() {
+    this.logger = new CoreLogger({
+      timer: {
+        logCollectionInterval: 1000,
+        eventProcessDelay: 100
+      },
+      ui: {
+        maxLogLines: 1000,
+        animations: true
+      }
+    });
+    
+    this.setupPerformanceMonitoring();
+    this.setupAutoExport();
+  }
+  
+  // パフォーマンスモニタリングの設定
+  private setupPerformanceMonitoring() {
+    this.updateInterval = setInterval(() => {
+      const stats = this.getGameStats();
+      this.logger.log({
+        type: "performance",
+        level: LogLevel.INFO,
+        details: {
+          fps: stats.fps,
+          memory: stats.memoryUsage,
+          entities: stats.activeEntities
+        }
+      });
+      
+      // パフォーマンス警告の設定
+      if (stats.fps < 30) {
+        this.logger.log({
+          type: "performance_warning",
+          level: LogLevel.WARN,
+          details: {
+            message: "FPSが低下しています",
+            currentFps: stats.fps
+          }
+        });
+      }
+    }, 5000); // 5秒ごとに更新
+  }
+  
+  // 自動エクスポートの設定
+  private setupAutoExport() {
+    const exportInterval = setInterval(async () => {
+      try {
+        // パフォーマンスログのエクスポート
+        await this.logger.export({
+          format: "json",
+          filename: `performance-${Date.now()}.json`,
+          filter: {
+            type: "performance"
+          }
+        });
+        
+        // 警告ログのエクスポート
+        await this.logger.export({
+          format: "csv",
+          filename: `warnings-${Date.now()}.csv`,
+          filter: {
+            level: LogLevel.WARN
+          }
+        });
+      } catch (error) {
+        console.error("ログエクスポートエラー:", error);
+      }
+    }, 300000); // 5分ごとにエクスポート
+  }
+  
+  // リソースのクリーンアップ
+  public dispose() {
+    clearInterval(this.updateInterval);
+    this.logger.dispose();
+  }
+  
+  // ゲーム統計の取得（実装例）
+  private getGameStats() {
+    return {
+      fps: 60, // 実際のFPS測定を実装
+      memoryUsage: 500, // メモリ使用量（MB）
+      activeEntities: 100 // アクティブなエンティティ数
+    };
+  }
+}
+
+// 使用例
+const gameLogger = new GameLogger();
+
+// ゲーム終了時
+window.addEventListener('beforeunload', () => {
+  gameLogger.dispose();
+});
+```
+
+これらの実装例は、ActionLoggerの高度な機能を活用する方法を示しています。実際の使用時には、アプリケーションの要件に応じてこれらの例を参考に、最適な実装を検討してください。

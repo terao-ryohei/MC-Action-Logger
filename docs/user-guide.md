@@ -1,4 +1,4 @@
-# @minecraft-script/action-logger ユーザーガイド
+# @terao-ryohei/mc-action-logger ユーザーガイド
 
 ## 1. はじめに
 
@@ -15,12 +15,12 @@
 
 ### インストール
 ```bash
-npm install @minecraft-script/action-logger
+npm install @terao-ryohei/mc-action-logger
 ```
 
 ### 基本設定
 ```typescript
-import { CoreLogger, LogLevel } from '@minecraft-script/action-logger';
+import { CoreLogger, LogLevel } from '@terao-ryohei/mc-action-logger';
 
 const logger = new CoreLogger({
   defaultLevel: LogLevel.INFO,
@@ -94,7 +94,7 @@ import {
   TimeRangeFilter,
   LogLevelFilter,
   EventTypeFilter
-} from '@minecraft-script/action-logger';
+} from '@terao-ryohei/mc-action-logger';
 
 // 複数のフィルターを組み合わせる
 logger.addFilter(new TimeRangeFilter(
@@ -110,7 +110,7 @@ const filteredEvents = logger.getEvents();
 
 ### カスタムフィルターの作成
 ```typescript
-import { BaseFilter } from '@minecraft-script/action-logger';
+import { BaseFilter } from '@terao-ryohei/mc-action-logger';
 
 // カスタムフィルターの実装
 class CustomFilter extends BaseFilter {
@@ -166,7 +166,230 @@ const customData = await logger.export({
 });
 ```
 
-## 6. よくある質問
+## 6. 詳細な設定オプション
+
+### タイマー設定
+
+タイマー設定では、ログの収集やイベント処理のタイミングを制御します：
+
+```typescript
+const logger = new CoreLogger({
+  timer: {
+    // ログ収集の間隔（ミリ秒）
+    logCollectionInterval: 1000,    // 1秒ごとにログを収集
+    
+    // イベント処理の遅延時間（ミリ秒）
+    eventProcessDelay: 100,         // イベントの処理を100ms遅延
+    
+    // 自動保存の間隔（ミリ秒）
+    autoSaveInterval: 5000,         // 5秒ごとに自動保存
+    
+    // タイムアウト時間（ミリ秒）
+    timeout: 30000,                 // 30秒でタイムアウト
+    
+    // バッチ処理の最大サイズ
+    batchSize: 100                  // 一度に処理する最大イベント数
+  }
+});
+```
+
+各設定の推奨値：
+- logCollectionInterval: 500-2000ms（負荷と即時性のバランス）
+- eventProcessDelay: 50-200ms（UI応答性とバッチ処理効率のバランス）
+- autoSaveInterval: 5000-60000ms（データ保護と書き込み頻度のバランス）
+
+### 入力管理設定
+
+キーバインドとイベントの制御を設定します：
+
+```typescript
+const logger = new CoreLogger({
+  input: {
+    // キーバインドの設定
+    keyBindings: {
+      toggleLog: "ctrl+l",     // ログ表示の切り替え
+      applyFilter: "ctrl+f",   // フィルターの適用
+      clearLog: "ctrl+k"       // ログのクリア
+    },
+    
+    // イベント制御
+    throttleTime: 250,         // イベントの制限（ミリ秒）
+    debounceTime: 300         // イベントの待機（ミリ秒）
+  }
+});
+```
+
+キーバインドのカスタマイズ例：
+- toggleLog: "alt+l", "cmd+l"
+- applyFilter: "alt+f", "cmd+f"
+- clearLog: "alt+k", "cmd+k"
+
+### UI設定
+
+表示とスタイルをカスタマイズします：
+
+```typescript
+const logger = new CoreLogger({
+  ui: {
+    // テーマ設定
+    theme: {
+      backgroundColor: "#1e1e1e",  // 背景色
+      textColor: "#ffffff",        // テキスト色
+      accentColor: "#007acc"       // アクセント色
+    },
+    
+    // 表示設定
+    fontSize: 14,                  // フォントサイズ（px）
+    maxLogLines: 1000,            // 最大表示行数
+    animations: true,             // アニメーション有効/無効
+    timestampFormat: "short"      // タイムスタンプ形式
+  }
+});
+```
+
+## 7. UIカスタマイズガイド
+
+### テーマのカスタマイズ
+
+1. ダークテーマ
+```typescript
+logger.updateConfig({
+  ui: {
+    theme: {
+      backgroundColor: "#2d2d2d",
+      textColor: "#e0e0e0",
+      accentColor: "#0078d4"
+    }
+  }
+});
+```
+
+2. ライトテーマ
+```typescript
+logger.updateConfig({
+  ui: {
+    theme: {
+      backgroundColor: "#ffffff",
+      textColor: "#000000",
+      accentColor: "#0066cc"
+    }
+  }
+});
+```
+
+### 表示のカスタマイズ
+
+1. 高解像度ディスプレイ向け
+```typescript
+logger.updateConfig({
+  ui: {
+    fontSize: 16,
+    maxLogLines: 2000,
+    animations: true
+  }
+});
+```
+
+2. パフォーマンス重視
+```typescript
+logger.updateConfig({
+  ui: {
+    fontSize: 12,
+    maxLogLines: 500,
+    animations: false
+  }
+});
+```
+
+### タイムスタンプ形式
+
+```typescript
+// 詳細な時刻表示
+logger.updateConfig({
+  ui: {
+    timestampFormat: "full"  // 例: "2025-04-18 10:45:30.123"
+  }
+});
+
+// 短い形式
+logger.updateConfig({
+  ui: {
+    timestampFormat: "short"  // 例: "10:45:30"
+  }
+});
+```
+
+## 8. タイマーと入力管理の設定
+
+### パフォーマンス最適化
+
+1. 高性能環境向け
+```typescript
+logger.updateConfig({
+  timer: {
+    logCollectionInterval: 500,
+    eventProcessDelay: 50,
+    batchSize: 200
+  }
+});
+```
+
+2. 低負荷設定
+```typescript
+logger.updateConfig({
+  timer: {
+    logCollectionInterval: 2000,
+    eventProcessDelay: 200,
+    batchSize: 50
+  }
+});
+```
+
+### イベント制御の最適化
+
+1. リアルタイム処理向け
+```typescript
+logger.updateConfig({
+  input: {
+    throttleTime: 100,
+    debounceTime: 150
+  }
+});
+```
+
+2. バッチ処理向け
+```typescript
+logger.updateConfig({
+  input: {
+    throttleTime: 500,
+    debounceTime: 600
+  }
+});
+```
+
+## 9. ログエクスポートの使用例
+
+### 自動エクスポート設定
+
+1. 頻繁な自動保存
+```typescript
+logger.updateConfig({
+  timer: {
+    autoSaveInterval: 60000  // 1分ごと
+  }
+});
+```
+
+2. 定期的なバックアップ
+```typescript
+logger.updateConfig({
+  timer: {
+    autoSaveInterval: 3600000  // 1時間ごと
+  }
+});
+```
+
+## 10. よくある質問
 
 Q: ログは自動的に保存されますか？
 A: `autoExport` オプションを設定することで、指定した間隔で自動的にログを保存できます。

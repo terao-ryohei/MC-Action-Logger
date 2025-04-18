@@ -24,12 +24,18 @@ enum BlockCategory {
   STONECUTTING = "stonecutting",
   REPAIRING = "repairing",
   COMPOSTING = "composting",
+  DOOR = "door",
 }
 
 /**
  * ブロックカテゴリーごとの動詞マッピング
  */
 const CategoryVerbMap: Record<BlockCategory, { [key: string]: string }> = {
+  [BlockCategory.DOOR]: {
+    use: "ドアを使用",
+    open: "ドアを開く",
+    close: "ドアを閉じる",
+  },
   [BlockCategory.CRAFTING]: {
     use: "アイテムをクラフトするため作業台を使用",
     close: "作業台での作業を終了",
@@ -252,7 +258,6 @@ export class BlockInteractionLogger implements IBlockInteractionLogger {
   /**
    * ブロックとのインタラクションをログに記録
    */
-  // playerId を引数に追加
   public logInteraction(playerId: string, interaction: BlockInteraction): void {
     try {
       // 履歴サイズの制限
@@ -264,10 +269,6 @@ export class BlockInteractionLogger implements IBlockInteractionLogger {
       // ブロック状態の更新
       this.updateBlockState(interaction.blockId, interaction.action);
 
-      // プレイヤーのアクションとしてログを記録 (logSystemAction の代わりに logAction を使用)
-      // UIManager で整形するので message は不要
-      // logAction に渡す details は BlockInteraction オブジェクト全体とする
-      // LogLevel は logAction 内部で決定されるため、ここでは渡さない
       // プレイヤーのアクションとしてログを記録
       this.logManager.logAction(playerId, ActionType.INTERACT, {
         blockId: interaction.blockId,
@@ -484,55 +485,94 @@ export class BlockInteractionLogger implements IBlockInteractionLogger {
     player: Player;
     block: { typeId: string; location: Vector3 };
   }): void {
-    // 入力パラメータの検証
-    if (!event?.player || !event?.block?.typeId) {
-      console.warn("無効なイベントデータです:", event);
+    console.info(event?.player?.id);
+    // 入力パラメータの詳細な検証
+    if (!event?.player?.id || typeof event.player.id !== "string") {
+      console.warn("無効なプレイヤーIDです:", event?.player?.id);
+      return;
+    }
+
+    if (!event?.block?.typeId || typeof event.block.typeId !== "string") {
+      console.warn("無効なブロックタイプIDです:", event?.block?.typeId);
       return;
     }
 
     try {
       const timestamp = Date.now();
       const blockId = event.block.typeId;
-      const blockDef = BlockDefinitions[blockId];
+      const blockDef = this.getBlockDefinition(blockId);
 
-      // 未定義のブロックは無視してログを出力
+      // ブロック定義が見つからない場合のデフォルト処理
       if (!blockDef) {
-        console.debug(`ログ対象外のブロック: ${blockId}`);
+        const defaultAction: BlockActionType = "use";
+        const defaultInteraction: BlockInteraction = {
+          blockId,
+          timestamp,
+          displayName: this.getDisplayName(blockId),
+          position: event.block.location,
+          action: {
+            type: defaultAction,
+            successful: true,
+            timing: {
+              startTime: timestamp,
+              duration: 0,
+            },
+          },
+        };
+        this.logInteraction(event.player.id, defaultInteraction);
         return;
       }
 
-      // 位置情報の正規化
-      const position: BlockPosition = {
-        x: Math.floor(event.block.location.x),
-        y: Math.floor(event.block.location.y),
-        z: Math.floor(event.block.location.z),
-      };
-
-      // 基本的なアクション情報の作成
-      const basicAction: ExtendedBlockAction = {
-        type: blockDef.defaultAction,
-        successful: true,
-        timing: {
-          startTime: timestamp,
-        },
-      };
-
-      // インタラクション情報の構築
+      // 定義されたブロックの処理
+      const actionType = blockDef.defaultAction as BlockActionType;
       const interaction: BlockInteraction = {
         blockId,
-        displayName: blockDef.displayName,
-        action: basicAction,
         timestamp,
-        position,
+        displayName: blockDef.displayName,
+        position: event.block.location,
+        action: {
+          type: actionType,
+          successful: true,
+          timing: {
+            startTime: timestamp,
+            duration: 0,
+          },
+        },
       };
-
-      // ログの記録
       this.logInteraction(event.player.id, interaction);
-    } catch (error: unknown) {
-      const errorMsg = error instanceof Error ? error.message : String(error);
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : "不明なエラー";
       console.error(
-        `プレイヤーインタラクション処理エラー - Player: ${event?.player?.id ?? "unknown"}, Block: ${event?.block?.typeId ?? "unknown"} - ${errorMsg}`,
+        `プレイヤーインタラクション処理エラー - Player: ${event.player.id}, Block: ${event.block.typeId}:`,
+        errorMessage,
       );
     }
+  }
+
+  /**
+   * ブロック定義を取得（存在しない場合は undefined）
+   */
+  private getBlockDefinition(blockId: string) {
+    const isDoor = blockId.includes("door");
+    if (isDoor) {
+      return {
+        id: blockId,
+        displayName: this.getDisplayName(blockId),
+        defaultAction: "use",
+        category: BlockCategory.DOOR,
+      };
+    }
+    return BlockDefinitions[blockId];
+  }
+
+  /**
+   * ブロックの表示名を取得
+   */
+  private getDisplayName(blockId: string): string {
+    const parts = blockId.replace("minecraft:", "").split("_");
+    return parts
+      .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+      .join(" ");
   }
 }

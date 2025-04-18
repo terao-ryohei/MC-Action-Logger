@@ -1,4 +1,4 @@
-# @minecraft-script/action-logger ビルドガイド
+# @terao-ryohei/mc-action-logger ビルドガイド
 
 ## 目次
 

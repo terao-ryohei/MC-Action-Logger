@@ -45,7 +45,7 @@ graph TB
 ### 2. パッケージ構造
 
 ```
-@minecraft-script/action-logger/
+@terao-ryohei/mc-action-logger/
 ├── core/
 │   ├── logger.ts          # コアロギング機能
 │   ├── event.ts          # イベントシステム
@@ -97,7 +97,7 @@ interface LogFilter {
 
 ```typescript
 // Core Logger の使用例
-import { CoreLogger, TimeRangeFilter } from '@minecraft-script/action-logger/core';
+import { CoreLogger, TimeRangeFilter } from '@terao-ryohei/mc-action-logger/core';
 
 const logger = new CoreLogger();
 
@@ -114,7 +114,7 @@ logger.addFilter(new TimeRangeFilter(startTime, endTime));
 const jsonData = await logger.export('json');
 
 // Minecraft実装の使用例
-import { MinecraftLogger } from '@minecraft-script/action-logger/minecraft';
+import { MinecraftLogger } from '@terao-ryohei/mc-action-logger/minecraft';
 
 const mcLogger = new MinecraftLogger();
 mcLogger.logPlayerAction(player, 'jump', { height: 1.5 });

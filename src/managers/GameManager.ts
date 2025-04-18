@@ -89,10 +89,15 @@ export class GameManager {
     }
 
     if (this.gameState.isRunning) {
-      player.sendMessage("§cゲームは既に実行中です！");
+      player.sendMessage("tetse");
+      player.sendMessage("§cゲームは既に2実行中です！");
       event.cancel = true;
       return;
     }
+
+    player.sendMessage("tetse");
+
+    console.info("てｓｔ");
 
     this.startGame();
   }

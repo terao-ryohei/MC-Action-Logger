@@ -1,4 +1,4 @@
-# @minecraft-script/action-logger
+# @terao-ryohei/mc-action-logger
 
 [English](./docs/en/README.md) | 日本語
 
@@ -13,25 +13,116 @@ TypeScriptで書かれた柔軟で拡張性の高いロギングライブラリ�
 - 🎯 メタデータサポート
 - 🛠️ カスタマイズ可能なフィルターとエクスポーター
 - 🎮 Minecraft Script APIとの統合
+- ⚙️ 包括的な設定システム
+- 🎨 カスタマイズ可能なUI
+- ⏲️ 高度なタイマーと入力管理
+
+## 設定システム
+
+ActionLoggerは柔軟な設定システムを提供し、アプリケーションのニーズに合わせて動作をカスタマイズできます：
+
+```typescript
+import { CoreLogger } from '@terao-ryohei/mc-action-logger';
+
+const logger = new CoreLogger({
+  // タイマー設定
+  timer: {
+    logCollectionInterval: 1000,  // ログ収集間隔（ミリ秒）
+    eventProcessDelay: 100,      // イベント処理の遅延（ミリ秒）
+    autoSaveInterval: 5000       // 自動保存間隔（ミリ秒）
+  },
+  // 入力管理設定
+  input: {
+    keyBindings: {
+      toggleLog: "ctrl+l",      // ログ表示切り替え
+      applyFilter: "ctrl+f"     // フィルター適用
+    }
+  },
+  // UI設定
+  ui: {
+    theme: {
+      backgroundColor: "#1e1e1e",
+      textColor: "#ffffff",
+      accentColor: "#007acc"
+    },
+    fontSize: 14,
+    maxLogLines: 1000,
+    animations: true
+  }
+});
+```
+
+## UIカスタマイズ
+
+ActionLoggerのUIは完全にカスタマイズ可能です：
+
+- 🎨 テーマカラーの変更（背景色、テキスト色、アクセント色）
+- 📏 フォントサイズの調整
+- 📋 ログ表示行数の制限設定
+- ⚡ アニメーション制御
+- 🕒 タイムスタンプ表示形式の選択
+
+```typescript
+// UIテーマのカスタマイズ例
+logger.updateConfig({
+  ui: {
+    theme: {
+      backgroundColor: "#2d2d2d",
+      textColor: "#e0e0e0",
+      accentColor: "#0078d4"
+    },
+    fontSize: 16,
+    maxLogLines: 2000,
+    animations: true,
+    timestampFormat: "short"
+  }
+});
+```
+
+## タイマーと入力管理
+
+タイマーと入力の設定をカスタマイズすることで、パフォーマンスと使用感を最適化できます：
+
+```typescript
+// タイマーと入力の設定例
+logger.updateConfig({
+  timer: {
+    logCollectionInterval: 1000,  // 1秒ごとにログを収集
+    eventProcessDelay: 50,        // イベント処理を50ms遅延
+    autoSaveInterval: 300000,     // 5分ごとに自動保存
+    timeout: 30000,               // 30秒でタイムアウト
+    batchSize: 100               // バッチ処理の最大サイズ
+  },
+  input: {
+    keyBindings: {
+      toggleLog: "ctrl+l",
+      applyFilter: "ctrl+f",
+      clearLog: "ctrl+k"
+    },
+    throttleTime: 250,          // 入力の制限時間（ミリ秒）
+    debounceTime: 300           // 入力の待機時間（ミリ秒）
+  }
+});
+```
 
 ## インストール
 
 npmを使用してインストール：
 
 ```bash
-npm install @minecraft-script/action-logger
+npm install @terao-ryohei/mc-action-logger
 ```
 
 Yarnを使用してインストール：
 
 ```bash
-yarn add @minecraft-script/action-logger
+yarn add @terao-ryohei/mc-action-logger
 ```
 
 ## 基本的な使い方
 
 ```typescript
-import { CoreLogger, LogLevel } from '@minecraft-script/action-logger';
+import { CoreLogger, LogLevel } from '@terao-ryohei/mc-action-logger';
 
 // ロガーのインスタンスを作成
 const logger = new CoreLogger({

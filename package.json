@@ -1,17 +1,16 @@
 {
-	"name": "@minecraft-script/action-logger",
-	"version": "1.0.0",
+	"name": "@terao-ryohei/mc-action-logger",
+	"version": "0.5.2",
 	"description": "A flexible and extensible logging library for Minecraft and other applications",
 	"scripts": {
-		"build": "tsc -p tsconfig.json",
+		"build": "tsc -p tsconfig.json && node scripts/build.mjs && node scripts/makeMcaddon.mjs && node scripts/makeZip.mjs",
 		"watch": "tsc -w -p tsconfig.json",
 		"clean": "rimraf dist",
 		"prepublishOnly": "npm run clean && npm run build",
 		"lint": "biome check .",
 		"format": "biome format --write .",
 		"docs": "typedoc --out docs/api src/index.ts",
-		"build:minecraft": "node scripts/build.mjs && node scripts/makeZip.mjs && node scripts/makeMcaddon.mjs",
-		"dev:minecraft": "npm run clean && npm run build:minecraft && npm run watch"
+		"dev": "npm run clean && npm run build && npm run watch"
 	},
 	"keywords": [
 		"minecraft",
@@ -62,10 +61,10 @@
 	},
 	"repository": {
 		"type": "git",
-		"url": "https://github.com/your-username/minecraft-action-logger.git"
+		"url": "https://github.com/terao-ryohei/MC-Action-Logger.git"
 	},
 	"bugs": {
-		"url": "https://github.com/your-username/minecraft-action-logger/issues"
+		"url": "https://github.com/terao-ryohei/MC-Action-Logger/issues"
 	},
-	"homepage": "https://github.com/your-username/minecraft-action-logger#readme"
+	"homepage": "https://github.com/terao-ryohei/MC-Action-Logger#readme"
 }
