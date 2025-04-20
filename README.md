@@ -87,6 +87,81 @@
 
 ## 開発者向け情報
 
+### サブモジュールとしての使用方法
+
+1. プロジェクトに追加:
+```bash
+git submodule add https://github.com/yourusername/minecraft-action-logger ActionLogger
+```
+
+2. モジュールの初期化:
+```typescript
+import { ActionLoggerModule } from "./ActionLogger/src/ActionLoggerModule";
+
+// モジュールの初期化
+const logger = ActionLoggerModule.getInstance();
+logger.initialize({
+  gameTime: { maxDuration: 3600 },  // 1時間
+  filters: {
+    minLogLevel: "info",
+    customFilters: ["block", "player"]
+  }
+});
+
+// エクスポート機能の設定
+logger.initializeExporter({
+  format: "json",
+  outputPath: "./logs",
+  compression: true
+});
+
+// ゲーム開始
+logger.startGame();
+```
+
+### 設定オプション
+
+```typescript
+interface LoggerConfiguration {
+  gameTime: {
+    maxDuration: number;      // 最大ゲーム時間（秒）
+    warningTime?: number;     // 警告を表示する残り時間（秒）
+  };
+  filters: {
+    minLogLevel: "debug" | "info" | "warn" | "error";
+    customFilters?: string[];  // 有効にするフィルター
+  };
+}
+
+interface ExportConfiguration {
+  format: "json" | "csv";     // 出力形式
+  outputPath: string;         // 出力先ディレクトリ
+  compression?: boolean;      // 圧縮の有効/無効
+  filename?: string;          // 出力ファイル名
+}
+```
+
+### エクスポート機能の使用例
+
+```typescript
+// JSONフォーマットでエクスポート
+await logger.exportLogs();
+
+// 現在のログを取得
+const currentLogs = logger.getLogs();
+
+// 設定の更新
+logger.updateConfig({
+  filters: {
+    minLogLevel: "warn"
+  }
+});
+
+// ゲームの停止とリソース解放
+logger.stopGame();
+logger.dispose();
+```
+
 ### 環境設定
 1. `.env`ファイルをプロジェクトルートに作成:
 ```

@@ -22,25 +22,36 @@ export enum LogLevel {
  * プレイヤーのアクション種別
  */
 export enum ActionType {
+  // --- プレイヤーアクション ---
   MOVE = "move",
   JUMP = "jump",
   ATTACK = "attack",
   INTERACT = "interact",
-  BLOCK_BROKEN = "block_broken", // BlockInteractionLogger で使用想定
-  BLOCK_PLACED = "block_placed", // BlockInteractionLogger で使用想定
-  SCRIPT_EVENT = "script_event", // ScriptEventLogger で使用
 
-  // --- Entity Lifecycle ---
+  // --- ブロック操作 ---
+  BLOCK_BROKEN = "block_broken",
+  BLOCK_PLACED = "block_placed",
+
+  // --- スクリプトイベント ---
+  SCRIPT_EVENT = "script_event",
+
+  // --- エンティティライフサイクル ---
   ENTITY_SPAWN = "entity_spawn",
   ENTITY_DEATH = "entity_death",
-  ENTITY_DESPAWN = "entity_despawn", // デスポーンを検知できる場合
+  ENTITY_DESPAWN = "entity_despawn",
 
-  // --- Player State Changes ---
+  // --- プレイヤー状態変更 ---
   PLAYER_HEALTH_CHANGE = "player_health_change",
   PLAYER_HUNGER_CHANGE = "player_hunger_change",
   PLAYER_EXPERIENCE_CHANGE = "player_experience_change",
   PLAYER_EFFECT_ADDED = "player_effect_added",
-  PLAYER_EFFECT_REMOVED = "player_effect_removed", // 効果除去を検知できる場合
+  PLAYER_EFFECT_REMOVED = "player_effect_removed",
+
+  // --- システム操作 ---
+  SYSTEM_RESUME = "system_resume",
+  SYSTEM_PAUSE = "system_pause",
+  SYSTEM_CONFIG_CHANGE = "system_config_change",
+  SYSTEM_EXPORT = "system_export",
 }
 
 /**
@@ -127,6 +138,82 @@ export interface UIState {
   isOpen: boolean;
   currentPlayerId: string;
   pageIndex: number;
+}
+
+/**
+ * ロガーの表示設定インターフェース
+ */
+export interface LoggerDisplayConfig {
+  showTimestamp: boolean;
+  showPlayerName: boolean;
+  showActionType: boolean;
+  showDetails: boolean;
+}
+
+/**
+ * ロガーのフィルタ設定インターフェース
+ */
+export interface LoggerFilterConfig {
+  minLogLevel: LogLevel;
+  includedActionTypes?: ActionType[]; // オプショナルに変更
+  excludedActionTypes?: ActionType[]; // オプショナルに変更
+  customFilters?: LogFilter[]; // オプショナルに変更
+}
+
+/**
+ * ゲーム時間設定インターフェース
+ */
+export interface GameTimeConfig {
+  initialTime: number; // ミリ秒
+  timeScale: number; // 実時間に対する倍率
+  dayLength: number; // 1日の長さ（ミリ秒）
+}
+
+/**
+ * 開始アイテム設定インターフェース
+ */
+export interface StartItemConfig {
+  itemId: string;
+  displayName: string;
+  canBeUsedByNonOp: boolean;
+}
+
+/**
+ * ロガーモジュールの設定インターフェース
+ */
+export interface LoggerConfiguration {
+  displayItems: LoggerDisplayConfig;
+  filters: LoggerFilterConfig;
+  gameTime: GameTimeConfig;
+  startItems: StartItemConfig[];
+}
+
+/**
+ * エクスポート設定インターフェース
+ */
+export interface ExportConfiguration {
+  format: "json" | "csv" | "txt";
+  includeMetadata: boolean;
+  timestampFormat: string;
+  outputPath: string;
+}
+
+/**
+ * エクスポートメタデータインターフェース
+ */
+export interface ExportMetadata {
+  exportTime: string;
+  format: string;
+  recordCount: number;
+  version: string;
+}
+
+/**
+ * エクスポートデータインターフェース
+ */
+export interface ExportData {
+  metadata?: ExportMetadata;
+  logs: PlayerLog[];
 }
 
 /**

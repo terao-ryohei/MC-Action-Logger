@@ -159,7 +159,120 @@ A: 以下のカテゴリが利用できます：
 1. 実験的なゲームプレイが有効になっているか確認
 2. アドオンが正しく適用されているか確認
 
-## 8. ビルド手順
+## 8. API リファレンス
+
+### ActionLoggerModule
+
+#### メソッド
+
+```typescript
+// シングルトンインスタンスの取得
+static getInstance(): ActionLoggerModule
+
+// モジュールの初期化
+initialize(config?: Partial<LoggerConfiguration>): void
+
+// 設定の更新
+updateConfig(config: Partial<LoggerConfiguration>): void
+
+// エクスポーター設定の初期化
+initializeExporter(config: ExportConfiguration): void
+
+// ログのエクスポート
+exportLogs(): Promise<void>
+
+// 全ログの取得
+getLogs(): PlayerLog[]
+
+// 現在の設定を取得
+getConfig(): LoggerConfiguration
+
+// ゲームの開始
+startGame(): void
+
+// ゲームの停止
+stopGame(): void
+
+// リソースの解放
+dispose(): void
+```
+
+### 設定ファイルのスキーマ
+
+#### LoggerConfiguration
+
+```typescript
+interface LoggerConfiguration {
+  gameTime: {
+    maxDuration: number;      // 最大ゲーム時間（秒）
+    warningTime?: number;     // 警告を表示する残り時間（秒）
+  };
+  filters: {
+    minLogLevel: "debug" | "info" | "warn" | "error";
+    customFilters?: string[];  // 有効にするフィルター
+  };
+}
+```
+
+#### ExportConfiguration
+
+```typescript
+interface ExportConfiguration {
+  format: "json" | "csv";     // 出力形式
+  outputPath: string;         // 出力先ディレクトリ
+  compression?: boolean;      // 圧縮の有効/無効
+  filename?: string;          // 出力ファイル名
+}
+```
+
+#### PlayerLog
+
+```typescript
+interface PlayerLog {
+  id: string;                 // ログID
+  timestamp: number;          // タイムスタンプ
+  player: string;            // プレイヤー名
+  type: string;              // アクション種別
+  details: Record<string, any>; // 詳細情報
+  position?: Vector3;        // 位置情報
+}
+```
+
+## 9. エラーハンドリング
+
+### よくあるエラーと対処方法
+
+1. 初期化エラー
+```typescript
+try {
+  logger.initialize(config);
+} catch (error) {
+  console.error("初期化エラー:", error);
+  // 再初期化を試みるか、デフォルト設定で初期化
+}
+```
+
+2. エクスポートエラー
+```typescript
+try {
+  await logger.exportLogs();
+} catch (error) {
+  console.error("エクスポートエラー:", error);
+  // 一時ファイルにバックアップを試みる
+}
+```
+
+3. 設定更新エラー
+```typescript
+try {
+  logger.updateConfig(newConfig);
+} catch (error) {
+  console.error("設定更新エラー:", error);
+  // 以前の設定を維持
+}
+```
+
+## 10. ビルド手順
 
 ### 環境変数の設定
 

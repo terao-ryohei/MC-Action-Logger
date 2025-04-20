@@ -1,6 +1,6 @@
 import { world, system, type Player } from "@minecraft/server";
 import type { GameManager } from "./GameManager";
-import { GAME_CONSTANTS } from "../types";
+import { GAME_CONSTANTS, type GameTimeConfig } from "../types";
 
 /**
  * タイマー機能を管理するクラス
@@ -12,10 +12,17 @@ export class TimerManager {
   private lastWarningTime = 0;
   private gameStartTime = 0; // ゲーム開始時のタイムスタンプ
   private readonly WARNING_COOLDOWN = 1000; // 警告音のクールダウン（ミリ秒）
+  private gameTimeConfig: GameTimeConfig;
 
   constructor(gameManager: GameManager) {
     this.gameManager = gameManager;
     this.tickCallback = this.tick.bind(this);
+    // デフォルトのゲーム時間設定
+    this.gameTimeConfig = {
+      initialTime: 0,
+      timeScale: 1,
+      dayLength: 24 * 60 * 60 * 1000, // 24時間（ミリ秒）
+    };
   }
 
   /**
@@ -26,7 +33,7 @@ export class TimerManager {
       if (this.runScheduleId !== undefined) {
         return;
       }
-      this.gameStartTime = Date.now();
+      this.gameStartTime = Date.now() + this.gameTimeConfig.initialTime;
 
       // 1秒ごとにtickを実行
       this.runScheduleId = system.runInterval(
@@ -150,7 +157,6 @@ export class TimerManager {
 
   /**
    * ゲーム内時間の取得
-   * @returns {Object} day: 経過日数(1日目から), hour: 時(0-23), minute: 分(0-59), isAM: 午前かどうか
    */
   public getGameTime(): {
     day: number;
@@ -159,17 +165,20 @@ export class TimerManager {
     isAM: boolean;
   } {
     try {
-      const currentGameSeconds = Math.floor(
+      const currentRealSeconds = Math.floor(
         (Date.now() - this.gameStartTime) / 1000,
       );
+      const currentGameSeconds =
+        currentRealSeconds * this.gameTimeConfig.timeScale;
       const totalMinutes = Math.floor(currentGameSeconds / 60);
       const totalHours = Math.floor(totalMinutes / 60);
+      const dayLength = this.gameTimeConfig.dayLength / 1000 / 60 / 60; // ミリ秒を時間に変換
 
       return {
-        day: Math.floor(totalHours / 24) + 1, // 1日目から開始
-        hour: totalHours % 24,
+        day: Math.floor(totalHours / dayLength) + 1, // 1日目から開始
+        hour: Math.floor(totalHours % dayLength),
         minute: totalMinutes % 60,
-        isAM: totalHours % 24 < 12,
+        isAM: Math.floor(totalHours % dayLength) < dayLength / 2,
       };
     } catch (error) {
       console.error("ゲーム内時間の取得中にエラーが発生しました:", error);
@@ -181,6 +190,16 @@ export class TimerManager {
         isAM: true,
       };
     }
+  }
+
+  /**
+   * ゲーム時間設定の更新
+   */
+  public updateGameTimeConfig(config: Partial<GameTimeConfig>): void {
+    this.gameTimeConfig = {
+      ...this.gameTimeConfig,
+      ...config,
+    };
   }
 
   /**
