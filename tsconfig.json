@@ -7,7 +7,7 @@
     "esModuleInterop": true,
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
-    "outDir": "build/scripts",
+    "outDir": "dist/scripts",
     "rootDir": "./src",
     "baseUrl": "./src",
     "declaration": false,
@@ -21,5 +21,5 @@
     "resolveJsonModule": true
   },
   "include": ["src/**/*.ts", "src/scripts/build.mjs"],
-  "exclude": ["node_modules", "build"]
+  "exclude": ["node_modules", "dist"]
 }

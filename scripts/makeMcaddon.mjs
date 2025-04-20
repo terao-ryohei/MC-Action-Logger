@@ -16,7 +16,7 @@ if (!WIN_OUTPUT_DIR && !WIN_OUTPUT_DIR2) {
 
 async function makeMcaddon() {
   try {
-    const sourcePath = "./build";
+    const sourcePath = "./dist";
 
     if (WIN_OUTPUT_DIR) {
       const outputPath = join(WIN_OUTPUT_DIR, "ActionLogger.mcaddon");
