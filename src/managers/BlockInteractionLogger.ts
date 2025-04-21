@@ -490,16 +490,19 @@ export class BlockInteractionLogger implements IBlockInteractionLogger {
       return;
     }
 
-    try {
-      const timestamp = Date.now();
-      const blockId = event.block.typeId;
-      const blockDef = BlockDefinitions[blockId];
+    const timestamp = Date.now();
+    const blockId = event.block.typeId;
 
-      // 未定義のブロックは無視してログを出力
-      if (!blockDef) {
-        console.debug(`ログ対象外のブロック: ${blockId}`);
-        return;
-      }
+    // 未定義のブロックは無視してログを出力
+    if (
+      !Object.keys(BlockDefinitions).includes(blockId.replace("minecraft:", ""))
+    ) {
+      console.debug(`ログ対象外のブロック: ${blockId}`);
+      return;
+    }
+
+    try {
+      const blockDef = BlockDefinitions[blockId];
 
       // 位置情報の正規化
       const position: BlockPosition = {
