@@ -130,7 +130,7 @@ export class UIManager {
       form.button("イベント別\n§7スクリプトイベントを表示");
 
       const response = await form.show(player);
-      console.log(JSON.stringify(response));
+      world.sendMessage(JSON.stringify(logs));
       if (!response.canceled && response.selection !== undefined) {
         switch (response.selection) {
           case 0:

@@ -1,5 +1,11 @@
-import { world, Player, system, type Vector3 } from "@minecraft/server";
-import type { EntityHurtAfterEvent } from "@minecraft/server";
+import {
+  world,
+  Player,
+  system,
+  type Vector3,
+  type EntityHurtAfterEvent,
+  type PlayerInteractWithBlockAfterEvent,
+} from "@minecraft/server";
 import type { GameManager } from "./GameManager";
 import {
   type PlayerLog,
@@ -14,7 +20,23 @@ import {
 /**
  * プレイヤーのアクションログを管理するクラス
  */
+
+// ハンドラの型定義
+type EventHandler<T> = (event: T) => void;
+
+interface HandlerState {
+  movement: boolean; // 移動チェック用
+  attack: boolean; // 攻撃イベント用
+  interact: boolean; // インタラクション用
+}
+
+interface SubscriptionMap {
+  attack: null | { handler: EventHandler<EntityHurtAfterEvent> };
+  interact: null | { handler: EventHandler<PlayerInteractWithBlockAfterEvent> };
+}
+
 export class LogManager {
+  private readonly DEFAULT_MOVEMENT_CHECK_INTERVAL = 2;
   private gameManager: GameManager;
   private shouldDisplayAction(action: PlayerAction): boolean {
     const levelCheck = action.level >= this.settings.displayLevel;
@@ -30,6 +52,15 @@ export class LogManager {
   private lastJumpTime: Map<string, number>;
   private lastPositions: Map<string, { x: number; y: number; z: number }>;
   private movementCheckRunId: number | undefined;
+  private handlerState: HandlerState = {
+    movement: false,
+    attack: false,
+    interact: false,
+  };
+  private subscriptions: SubscriptionMap = {
+    attack: null,
+    interact: null,
+  };
   private readonly MIN_MOVEMENT_DISTANCE = 1.0;
   private readonly MIN_JUMP_HEIGHT = 0.5;
   private readonly JUMP_COOLDOWN = 500; // ミリ秒
@@ -69,16 +100,8 @@ export class LogManager {
    */
   private initializeEventHandlers(): void {
     try {
-      // 移動の検出は定期的なチェックで行う
-      this.startMovementCheck();
-
-      // 攻撃（ダメージ）イベントの監視
-      const attackCallback = this.handleAttack.bind(this);
-      world.afterEvents.entityHurt.subscribe(attackCallback);
-
-      // インタラクションイベントの監視
-      const interactCallback = this.handleInteract.bind(this);
-      world.afterEvents.playerInteractWithBlock.subscribe(interactCallback);
+      // フィルター設定に基づいてハンドラを初期化
+      this.updateEventHandlers();
     } catch (error) {
       console.error("イベントハンドラの初期化中にエラーが発生しました:", error);
       throw error;
@@ -86,11 +109,82 @@ export class LogManager {
   }
 
   /**
+   * フィルター設定に基づいて必要なハンドラを評価
+   */
+  private evaluateRequiredHandlers(): HandlerState {
+    const actionTypes = new Set(
+      this.settings.filters.map((filter) => filter.actionType).filter(Boolean),
+    );
+
+    return {
+      movement:
+        actionTypes.size === 0 ||
+        actionTypes.has(ActionType.MOVE) ||
+        actionTypes.has(ActionType.JUMP),
+      attack: actionTypes.size === 0 || actionTypes.has(ActionType.ATTACK),
+      interact: actionTypes.size === 0 || actionTypes.has(ActionType.INTERACT),
+    };
+  }
+
+  /**
+   * ハンドラの動的管理
+   */
+  private updateEventHandlers(): void {
+    const requiredState = this.evaluateRequiredHandlers();
+
+    // 移動チェック
+    if (requiredState.movement && !this.handlerState.movement) {
+      this.startMovementCheck();
+    } else if (!requiredState.movement && this.handlerState.movement) {
+      this.stopMovementCheck();
+    } else if (
+      requiredState.movement &&
+      this.handlerState.movement &&
+      this.settings.movementCheckInterval !== undefined
+    ) {
+      this.restartMovementCheck();
+    }
+
+    // 攻撃イベント
+    if (requiredState.attack && !this.handlerState.attack) {
+      const handler = this.handleAttack.bind(this);
+      world.afterEvents.entityHurt.subscribe(handler);
+      this.subscriptions.attack = { handler };
+    } else if (
+      !requiredState.attack &&
+      this.handlerState.attack &&
+      this.subscriptions.attack
+    ) {
+      world.afterEvents.entityHurt.unsubscribe(
+        this.subscriptions.attack.handler,
+      );
+      this.subscriptions.attack = null;
+    }
+
+    // インタラクションイベント
+    if (requiredState.interact && !this.handlerState.interact) {
+      const handler = this.handleInteract.bind(this);
+      world.afterEvents.playerInteractWithBlock.subscribe(handler);
+      this.subscriptions.interact = { handler };
+    } else if (
+      !requiredState.interact &&
+      this.handlerState.interact &&
+      this.subscriptions.interact
+    ) {
+      world.afterEvents.playerInteractWithBlock.unsubscribe(
+        this.subscriptions.interact.handler,
+      );
+      this.subscriptions.interact = null;
+    }
+
+    this.handlerState = requiredState;
+  }
+
+  /**
    * 移動チェックの開始
    */
   private startMovementCheck(): void {
     try {
-      // 0.1秒ごとに位置をチェック
       this.movementCheckRunId = system.runInterval(() => {
         try {
           if (!this.gameManager.getGameState().isRunning) return;
@@ -102,7 +196,8 @@ export class LogManager {
         } catch (error) {
           console.error("移動チェック中にエラーが発生しました:", error);
         }
-      }, 2); // 2 ticks = 0.1秒
+      }, this.settings.movementCheckInterval ??
+        this.DEFAULT_MOVEMENT_CHECK_INTERVAL);
     } catch (error) {
       console.error("移動チェックの開始に失敗しました:", error);
       throw error;
@@ -248,6 +343,7 @@ export class LogManager {
       this.settings.actionTypeSettings.get(type) ?? this.settings.defaultLevel;
     try {
       let playerLog = this.logs.get(playerId);
+      world.sendMessage(`Action Type: ${type}, Level: ${LogLevel[level]}`);
       if (!playerLog) {
         playerLog = {
           playerId,
@@ -319,11 +415,43 @@ export class LogManager {
   /**
    * ログ設定の更新
    */
+  /**
+   * 移動チェックの停止
+   */
+  private stopMovementCheck(): void {
+    if (this.movementCheckRunId !== undefined) {
+      system.clearRun(this.movementCheckRunId);
+      this.movementCheckRunId = undefined;
+    }
+  }
+
+  /**
+   * 移動チェックの再起動
+   */
+  private restartMovementCheck(): void {
+    this.stopMovementCheck();
+    this.startMovementCheck();
+  }
+
   public updateSettings(settings: Partial<LogSettings>): void {
+    const oldSettings = { ...this.settings };
     this.settings = {
       ...this.settings,
       ...settings,
     };
+
+    // フィルター設定が変更された場合、ハンドラを再評価
+    if ("filters" in settings) {
+      this.updateEventHandlers();
+    }
+    // 移動チェック間隔が変更された場合、移動チェックを再起動
+    else if (
+      "movementCheckInterval" in settings &&
+      oldSettings.movementCheckInterval !== settings.movementCheckInterval &&
+      this.handlerState.movement
+    ) {
+      this.restartMovementCheck();
+    }
   }
 
   /**
@@ -338,9 +466,19 @@ export class LogManager {
    */
   public dispose(): void {
     try {
-      if (this.movementCheckRunId !== undefined) {
-        system.clearRun(this.movementCheckRunId);
-        this.movementCheckRunId = undefined;
+      // 全てのイベントハンドラを解放
+      this.stopMovementCheck();
+      if (this.subscriptions.attack) {
+        world.afterEvents.entityHurt.unsubscribe(
+          this.subscriptions.attack.handler,
+        );
+        this.subscriptions.attack = null;
+      }
+      if (this.subscriptions.interact) {
+        world.afterEvents.playerInteractWithBlock.unsubscribe(
+          this.subscriptions.interact.handler,
+        );
+        this.subscriptions.interact = null;
       }
       this.reset();
     } catch (error) {

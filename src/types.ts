@@ -77,6 +77,7 @@ export interface PlayerLog {
  */
 export interface LogFilter {
   shouldDisplay(action: PlayerAction): boolean;
+  actionType?: ActionType; // フィルターの対象アクションタイプ（任意）
 }
 
 /**
@@ -87,6 +88,7 @@ export interface LogSettings {
   displayLevel: LogLevel; // 表示するログレベルの閾値
   actionTypeSettings: Map<ActionType, LogLevel>; // アクション種別ごとのログレベル設定
   filters: LogFilter[]; // カスタムフィルター
+  movementCheckInterval?: number; // 移動チェックの間隔（ticks）
 }
 
 /**
@@ -124,7 +126,11 @@ export class TimeRangeFilter implements LogFilter {
  * アクション種別フィルタークラス
  */
 export class ActionTypeFilter implements LogFilter {
-  constructor(private types: ActionType[]) {}
+  constructor(private types: ActionType[]) {
+    this.actionType = types[0]; // 最初のアクションタイプをフィルターのタイプとして設定
+  }
+
+  actionType?: ActionType;
 
   shouldDisplay(action: PlayerAction): boolean {
     return this.types.includes(action.type);
