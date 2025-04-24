@@ -66,13 +66,19 @@ export class ScriptEventLogger implements IScriptEventLogger {
         return;
       }
 
+      // GameTimeStampの生成
+      const timestamp = {
+        realTime: Date.now(),
+        gameTime: this.gameManager.getTimerManager().getGameTime(),
+      };
+
       // イベント状態の更新
       this.updateEventState(event.eventId, {
         status: "active",
-        lastUpdate: event.timestamp,
+        lastUpdate: timestamp.realTime,
         currentOperation: {
           type: event.eventId,
-          startTime: event.timestamp,
+          startTime: timestamp.realTime,
           parameters: event.parameters,
         },
       });
@@ -82,9 +88,13 @@ export class ScriptEventLogger implements IScriptEventLogger {
 
       // イベントレコードの作成
       const record: ScriptEventRecord = {
-        eventData: event,
+        eventData: {
+          ...event,
+          timestamp: timestamp,
+        },
         formattedMessage,
         category: definition.category,
+        timestamp: timestamp,
       };
 
       // 履歴の保存（サイズ制限を考慮）
@@ -160,8 +170,8 @@ export class ScriptEventLogger implements IScriptEventLogger {
     try {
       return this.eventHistory.filter(
         (record) =>
-          record.eventData.timestamp >= startTime &&
-          record.eventData.timestamp <= endTime,
+          record.eventData.timestamp.realTime >= startTime &&
+          record.eventData.timestamp.realTime <= endTime,
       );
     } catch (error) {
       console.error("時間範囲別イベント取得エラー:", error);

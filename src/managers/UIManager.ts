@@ -349,10 +349,15 @@ export class UIManager {
 
     for (const action of actions) {
       try {
-        const timeText = this.formatTime();
+        const gameTime = action.timestamp.gameTime;
+        const hour24 = gameTime.hour;
+        // マインクラフトのゲーム内時間として表示
+        const timeText = `[${hour24.toString().padStart(2, "0")}:${gameTime.minute
+          .toString()
+          .padStart(2, "0")}]`;
         const actionText = this.formatAction(action);
         if (actionText) {
-          lines.push(`§7${timeText}§r: ${actionText}`);
+          lines.push(`§7${timeText}§r ${actionText}`);
         }
       } catch (error) {
         console.error("ログエントリの整形中にエラーが発生しました:", error);
@@ -379,8 +384,14 @@ export class UIManager {
 
     for (const event of displayEvents) {
       try {
-        const timeText = this.formatTime();
-        lines.push(`§7${timeText}§r: ${event.formattedMessage}`);
+        // イベント自身が持つタイムスタンプを使用
+        const gameTime = event.timestamp.gameTime;
+        const hour24 = gameTime.hour;
+        // マインクラフトのゲーム内時間として表示
+        const timeText = `[${hour24.toString().padStart(2, "0")}:${gameTime.minute
+          .toString()
+          .padStart(2, "0")}]`;
+        lines.push(`§7${timeText}§r ${event.formattedMessage}`);
       } catch (error) {
         console.error(
           "イベントログエントリの整形中にエラーが発生しました:",
@@ -390,22 +401,6 @@ export class UIManager {
     }
 
     return lines.join("\n");
-  }
-
-  /**
-   * 時刻の整形
-   */
-  private formatTime(): string {
-    try {
-      const gameTime = this.gameManager.getTimerManager().getGameTime();
-      const hour12 = gameTime.hour % 12 || 12;
-      return `${gameTime.day}日目 ${hour12.toString().padStart(2, "0")}:${gameTime.minute
-        .toString()
-        .padStart(2, "0")} ${gameTime.isAM ? "午前" : "午後"}`;
-    } catch (error) {
-      console.error("時刻の整形中にエラーが発生しました:", error);
-      return "時刻不明";
-    }
   }
 
   /**

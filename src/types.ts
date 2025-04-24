@@ -55,11 +55,28 @@ export enum ActionType {
 }
 
 /**
+ * ゲーム内時刻を表すインターフェース
+ */
+export interface GameTime {
+  day: number; // ゲーム内の日付
+  hour: number; // 時 (0-23)
+  minute: number; // 分 (0-59)
+}
+
+/**
+ * タイムスタンプ情報を表すインターフェース
+ */
+export interface GameTimeStamp {
+  realTime: number; // 実時間（Unix timestamp）
+  gameTime: GameTime; // ゲーム内時刻
+}
+
+/**
  * プレイヤーの1つのアクションを表すインターフェース
  */
 export interface PlayerAction {
   type: ActionType;
-  timestamp: number;
+  timestamp: GameTimeStamp; // タイムスタンプを GameTimeStamp に変更
   details: unknown;
   level: LogLevel; // ログレベル
 }
@@ -117,7 +134,8 @@ export class TimeRangeFilter implements LogFilter {
 
   shouldDisplay(action: PlayerAction): boolean {
     return (
-      action.timestamp >= this.startTime && action.timestamp <= this.endTime
+      action.timestamp.realTime >= this.startTime &&
+      action.timestamp.realTime <= this.endTime
     );
   }
 }
@@ -236,7 +254,7 @@ export const PAPER_ITEM_ID = "minecraft:paper";
  * ゲームの定数
  */
 export const GAME_CONSTANTS = {
-  GAME_DURATION: 30, // 3分（秒）
+  GAME_DURATION: 200, // 3分（秒）
   TICKS_PER_SECOND: 20, // 1秒あたりのティック数
   MAX_ACTIONS_PER_PAGE: 10, // UIでの1ページあたりのアクション表示数
 } as const;

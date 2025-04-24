@@ -15,6 +15,7 @@ import {
   LogLevel,
   type LogSettings,
   CompositeLogFilter,
+  type GameTimeStamp,
 } from "../types";
 
 /**
@@ -323,6 +324,18 @@ export class LogManager {
    * アクションのログ記録
    */
   /**
+   * ゲーム内時刻情報の生成
+   */
+  private createGameTimeStamp(): GameTimeStamp {
+    const realTime = Date.now();
+    const gameTime = this.gameManager.getTimerManager().getGameTime();
+    return {
+      realTime,
+      gameTime,
+    };
+  }
+
+  /**
    * パブリックなログ記録メソッド
    */
   public logSystemAction(type: ActionType, details: unknown): void {
@@ -354,7 +367,7 @@ export class LogManager {
 
       playerLog.actions.push({
         type,
-        timestamp: Date.now(),
+        timestamp: this.createGameTimeStamp(),
         details,
         level,
       });

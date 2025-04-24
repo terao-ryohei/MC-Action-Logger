@@ -4,6 +4,7 @@ import type {
   ExportConfiguration,
   ExportData,
   ExportMetadata,
+  GameTimeStamp,
 } from "../types";
 
 /**
@@ -125,17 +126,18 @@ export class LogExporter {
   /**
    * タイムスタンプのフォーマット
    */
-  private formatTimestamp(timestamp: number): string {
-    const date = new Date(timestamp);
+  private formatTimestamp(timestamp: GameTimeStamp): string {
+    const date = new Date(timestamp.realTime);
+    const gameTime = `[${timestamp.gameTime.hour.toString().padStart(2, "0")}:${timestamp.gameTime.minute.toString().padStart(2, "0")}]`;
     switch (this.config.timestampFormat) {
       case "ISO":
-        return date.toISOString();
+        return `${gameTime} (${date.toISOString()})`;
       case "LOCAL":
-        return date.toLocaleString();
+        return `${gameTime} (${date.toLocaleString()})`;
       case "UNIX":
-        return timestamp.toString();
+        return `${gameTime} (${timestamp.realTime})`;
       default:
-        return date.toISOString();
+        return `${gameTime} (${date.toISOString()})`;
     }
   }
 

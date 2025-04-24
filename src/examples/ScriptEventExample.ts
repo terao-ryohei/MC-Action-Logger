@@ -103,9 +103,15 @@ export function setupScriptEvents(gameManager: GameManager): void {
   redstoneParams.set("position", { x: 100, y: 64, z: 200 });
 
   // サンプルイベントのログ記録
+  // GameTimeStampの生成
+  const currentTimestamp = {
+    realTime: Date.now(),
+    gameTime: gameManager.getTimerManager().getGameTime(),
+  };
+
   scriptEventLogger.logScriptEvent({
     eventId: "door_operation",
-    timestamp: Date.now(),
+    timestamp: currentTimestamp,
     parameters: doorParams,
     source: {
       type: "player",
@@ -119,7 +125,7 @@ export function setupScriptEvents(gameManager: GameManager): void {
 
   scriptEventLogger.logScriptEvent({
     eventId: "redstone_signal",
-    timestamp: Date.now(),
+    timestamp: currentTimestamp,
     parameters: redstoneParams,
     source: {
       type: "block",

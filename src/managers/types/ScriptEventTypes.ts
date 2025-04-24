@@ -1,4 +1,5 @@
 import type { Vector3 } from "@minecraft/server";
+import type { GameTimeStamp } from "../../types";
 
 /**
  * パラメータ値の型定義
@@ -153,7 +154,7 @@ export interface EventOutput {
  */
 export interface ScriptEventData {
   eventId: string;
-  timestamp: number;
+  timestamp: GameTimeStamp; // GameTimeStampに変更
   parameters: Map<string, ParameterValue>;
   source: EventSource;
   position: Vector3;
@@ -175,6 +176,7 @@ export interface ScriptEventRecord {
   eventData: ScriptEventData;
   formattedMessage: string;
   category: string;
+  timestamp: GameTimeStamp; // GameTimeStampを追加
 }
 
 /**

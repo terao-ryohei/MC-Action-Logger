@@ -165,20 +165,23 @@ export class TimerManager {
     isAM: boolean;
   } {
     try {
-      const currentRealSeconds = Math.floor(
-        (Date.now() - this.gameStartTime) / 1000,
-      );
-      const currentGameSeconds =
-        currentRealSeconds * this.gameTimeConfig.timeScale;
-      const totalMinutes = Math.floor(currentGameSeconds / 60);
-      const totalHours = Math.floor(totalMinutes / 60);
-      const dayLength = this.gameTimeConfig.dayLength / 1000 / 60 / 60; // ミリ秒を時間に変換
+      // マインクラフトのゲーム内時間を取得（0-24000）
+      const timeOfDay = world.getTimeOfDay();
+
+      // 時間の計算（1時間 = 1000 ticks）
+      // 6:00が0、18:00が12000になるように調整（+6を加算）
+      const adjustedTime = (timeOfDay + 6000) % 24000;
+      const hour = Math.floor(adjustedTime / 1000);
+
+      // 分の計算（1分 = 1000/60 ticks ≈ 16.67 ticks）
+      const minuteTicks = adjustedTime % 1000;
+      const minute = Math.floor((minuteTicks / 1000) * 60);
 
       return {
-        day: Math.floor(totalHours / dayLength) + 1, // 1日目から開始
-        hour: Math.floor(totalHours % dayLength),
-        minute: totalMinutes % 60,
-        isAM: Math.floor(totalHours % dayLength) < dayLength / 2,
+        day: 1, // 日付は使用しないので固定値
+        hour: hour,
+        minute: minute,
+        isAM: hour < 12,
       };
     } catch (error) {
       console.error("ゲーム内時間の取得中にエラーが発生しました:", error);
