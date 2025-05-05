@@ -1,4 +1,4 @@
-# EntityLifecycleLogger と PlayerStateChangeLogger の実装計画
+# EntityLifecycleLogger と PlayerStateLogger の実装計画
 
 ## 1. ファイル構成
 
@@ -13,16 +13,16 @@
 
 3. `src/managers/EntityLifecycleLogger.ts`
    - エンティティのスポーン、死亡イベントを記録するロガー
-   - LogManagerとの連携実装
+   - PlayerActionLogMangerとの連携実装
 
-4. `src/managers/PlayerStateChangeLogger.ts`
+4. `src/managers/PlayerStateLogger.ts`
    - プレイヤーの状態変化を記録するロガー
    - 定期的なポーリング処理の実装
-   - LogManagerとの連携実装
+   - PlayerActionLogMangerとの連携実装
 
-5. `src/managers/GameManager.ts`
+5. `src/managers/MainManager.ts`
    - 新規ロガーの統合
-   - LogManagerインスタンスの注入
+   - PlayerActionLogMangerインスタンスの注入
 
 ## 2. 実装順序
 
@@ -51,9 +51,9 @@
 1. エンティティスポーンの検知と記録
 2. エンティティ死亡の検知と記録
 3. プレイヤーエンティティの除外処理
-4. LogManagerとの連携実装
+4. PlayerActionLogMangerとの連携実装
 
-### 2.3 PlayerStateChangeLoggerの実装
+### 2.3 PlayerStateLoggerの実装
 1. プレイヤー状態の監視機能実装
    - 体力値の監視
    - 空腹度の監視
@@ -61,11 +61,11 @@
    - ステータス効果の監視
 2. ポーリング処理の実装
 3. 前回の状態保持機能の実装
-4. LogManagerとの連携実装
+4. PlayerActionLogMangerとの連携実装
 
-### 2.4 GameManagerへの統合
+### 2.4 MainManagerへの統合
 1. 新規ロガーのインスタンス作成
-2. LogManagerの注入
+2. PlayerActionLogMangerの注入
 3. ゲーム状態との連携
 
 ## 3. 動作確認手順
@@ -79,7 +79,7 @@
 - [ ] プレイヤーイベントの除外確認
 - [ ] ログフォーマットの確認
 
-### 3.2 PlayerStateChangeLoggerの動作確認
+### 3.2 PlayerStateLoggerの動作確認
 - [ ] プレイヤーの体力変化記録
 - [ ] プレイヤーの体力回復記録
 - [ ] 空腹度減少の記録
@@ -92,8 +92,8 @@
 - [ ] ログフォーマットの確認
 
 ### 3.3 統合テスト
-- [ ] LogManagerのフィルター設定の動作確認
-- [ ] LogManagerのログレベル設定の動作確認
+- [ ] PlayerActionLogMangerのフィルター設定の動作確認
+- [ ] PlayerActionLogMangerのログレベル設定の動作確認
 - [ ] 複数プレイヤーでの同時動作確認
 - [ ] パフォーマンス影響の確認
 
@@ -107,7 +107,7 @@
 2. エラーハンドリング
    - イベント購読失敗時の対応
    - ポーリング処理失敗時の対応
-   - LogManager連携失敗時の対応
+   - PlayerActionLogManger連携失敗時の対応
 
 3. デバッグ支援
    - 適切なデバッグログの出力

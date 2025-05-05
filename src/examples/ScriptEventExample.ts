@@ -3,9 +3,9 @@ import {
   type EventDefinition,
   type ParameterValue,
 } from "../managers/types/ScriptEventTypes";
-import { GameManager } from "../managers/GameManager";
+import { MainManager } from "../managers/MainManager";
 import { world, system, type Vector3 } from "@minecraft/server";
-import { ActionType } from "../types";
+import { ActionType } from "../types/types";
 
 /**
  * サンプルイベント定義
@@ -85,8 +85,8 @@ const sampleEvents: EventDefinition[] = [
 /**
  * イベント定義の登録と使用例
  */
-export function setupScriptEvents(gameManager: GameManager): void {
-  const scriptEventLogger = gameManager.getScriptEventLogger();
+export function setupScriptEvents(mainManager: MainManager): void {
+  const scriptEventLogger = mainManager.getScriptEventLogger();
 
   // イベント定義の登録
   for (const eventDef of sampleEvents) {
@@ -106,7 +106,7 @@ export function setupScriptEvents(gameManager: GameManager): void {
   // GameTimeStampの生成
   const currentTimestamp = {
     realTime: Date.now(),
-    gameTime: gameManager.getTimerManager().getGameTime(),
+    gameTime: mainManager.getTimerManager().getGameTime(),
   };
 
   scriptEventLogger.logScriptEvent({
@@ -149,7 +149,7 @@ export function setupScriptEvents(gameManager: GameManager): void {
     const messageContent = ev.id.slice("scriptlog:".length);
     const [command, ...args] = messageContent.split(" ");
 
-    const manager = GameManager.getInstance();
+    const manager = MainManager.getInstance();
     const logger = manager.getScriptEventLogger();
 
     try {
@@ -185,11 +185,13 @@ export function setupScriptEvents(gameManager: GameManager): void {
       });
 
       // エラーのログを記録
-      manager.getLogManager().logAction("system", ActionType.INTERACT, {
-        eventId: "scriptlog_error",
-        details: `スクリプトログコマンドのエラー: ${error}`,
-        result: { success: false, error: String(error) },
-      });
+      manager
+        .getPlayerActionLogManger()
+        .logAction("system", ActionType.INTERACT, {
+          eventId: "scriptlog_error",
+          details: `スクリプトログコマンドのエラー: ${error}`,
+          result: { success: false, error: String(error) },
+        });
     }
   });
 }

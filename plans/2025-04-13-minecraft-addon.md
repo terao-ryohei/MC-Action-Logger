@@ -4,9 +4,9 @@
 
 ```mermaid
 graph TD
-    A[main.ts] --> B[GameManager]
+    A[main.ts] --> B[MainManager]
     A --> C[TimerManager]
-    A --> D[LogManager]
+    A --> D[PlayerActionLogManger]
     A --> E[UIManager]
     
     B --> C
@@ -19,7 +19,7 @@ graph TD
 
 ### モジュール説明
 
-1. `GameManager`
+1. `MainManager`
    - ゲーム全体の状態管理
    - イベントハンドリングのエントリーポイント
    - 他のマネージャーの調整
@@ -29,7 +29,7 @@ graph TD
    - カウントダウン表示
    - 時間切れ処理
 
-3. `LogManager`
+3. `PlayerActionLogManger`
    - プレイヤーアクションの記録
    - ログデータの保存と取得
    - ログのリセット処理
@@ -90,24 +90,24 @@ interface UIState {
 ```mermaid
 sequenceDiagram
     participant Player
-    participant GameManager
+    participant MainManager
     participant TimerManager
-    participant LogManager
+    participant PlayerActionLogManger
     participant UIManager
 
-    Player->>GameManager: 時計アイテム使用
-    GameManager->>TimerManager: タイマー開始
-    GameManager->>LogManager: ログリセット
-    GameManager->>Player: ゲーム開始通知
+    Player->>MainManager: 時計アイテム使用
+    MainManager->>TimerManager: タイマー開始
+    MainManager->>PlayerActionLogManger: ログリセット
+    MainManager->>Player: ゲーム開始通知
 
     loop 3分間
-        Player->>LogManager: アクション実行
-        LogManager->>LogManager: ログ記録
+        Player->>PlayerActionLogManger: アクション実行
+        PlayerActionLogManger->>PlayerActionLogManger: ログ記録
         TimerManager->>Player: カウントダウン表示
     end
 
-    TimerManager->>GameManager: 時間切れ通知
-    GameManager->>UIManager: 紙アイテム配布
+    TimerManager->>MainManager: 時間切れ通知
+    MainManager->>UIManager: 紙アイテム配布
     Player->>UIManager: 紙アイテム使用
     UIManager->>Player: ログ表示
 ```
@@ -118,25 +118,25 @@ sequenceDiagram
 ```typescript
 // main.ts
 import { world } from "@minecraft/server";
-import { GameManager } from "./GameManager";
+import { MainManager } from "./MainManager";
 
 // シングルトンインスタンス
-let gameManager: GameManager | null = null;
+let mainManager: MainManager | null = null;
 
 // サーバー起動時の初期化
 world.beforeEvents.worldInitialize.subscribe(() => {
-  if (!gameManager) {
-    gameManager = new GameManager();
+  if (!mainManager) {
+    mainManager = new MainManager();
   }
 });
 ```
 
 ### 4.2 時計アイテムによるゲーム開始
 ```typescript
-// GameManager.ts
+// MainManager.ts
 import { world, ItemUseEvent } from "@minecraft/server";
 
-class GameManager {
+class MainManager {
   private isRunning: boolean = false;
 
   constructor() {
@@ -150,7 +150,7 @@ class GameManager {
   private startGame(): void {
     this.isRunning = true;
     this.timerManager.start();
-    this.logManager.reset();
+    this.playerActionLogManger.reset();
     this.broadcastGameStart();
   }
 }
@@ -158,8 +158,8 @@ class GameManager {
 
 ### 4.3 ログ記録処理
 ```typescript
-// LogManager.ts
-class LogManager {
+// PlayerActionLogManger.ts
+class PlayerActionLogManger {
   private logs: Map<string, PlayerLog>;
 
   constructor() {
@@ -209,7 +209,7 @@ import { ActionFormData } from "@minecraft/server-ui";
 
 class UIManager {
   showLog(playerId: string): void {
-    const log = this.logManager.getPlayerLog(playerId);
+    const log = this.playerActionLogManger.getPlayerLog(playerId);
     const form = new ActionFormData()
       .title("活動記録")
       .body(this.formatLog(log));

@@ -1,5 +1,5 @@
 import type { Vector3 } from "@minecraft/server";
-import type { GameTimeStamp } from "../../types";
+import type { GameTimeStamp } from "../../types/types";
 
 /**
  * パラメータ値の型定義

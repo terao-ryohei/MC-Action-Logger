@@ -1,6 +1,6 @@
 import { world } from "@minecraft/server";
-import { ActionType } from "../types";
-import type { LogManager } from "./LogManager";
+import { ActionType } from "../types/types";
+import type { PlayerActionLogManger } from "./PlayerActionLogManager";
 import type {
   EntityDeathDetails,
   // EntitySpawnDetails,
@@ -10,10 +10,10 @@ import type {
  * エンティティのライフサイクル（スポーン、死亡）を記録するロガー
  */
 export class EntityLifecycleLogger {
-  private readonly logManager: LogManager;
+  private readonly playerActionLogManger: PlayerActionLogManger;
 
-  constructor(logManager: LogManager) {
-    this.logManager = logManager;
+  constructor(playerActionLogManger: PlayerActionLogManger) {
+    this.playerActionLogManger = playerActionLogManger;
     this.subscribeToEvents();
   }
 
@@ -41,7 +41,7 @@ export class EntityLifecycleLogger {
     //     dimension: entity.dimension.id,
     //   };
 
-    //   this.logManager.logAction(entity.id, ActionType.ENTITY_SPAWN, details);
+    //   this.playerActionLogManger.logAction(entity.id, ActionType.ENTITY_SPAWN, details);
     // });
 
     // エンティティ死亡イベントの購読
@@ -67,7 +67,11 @@ export class EntityLifecycleLogger {
         killerEntityType: event.damageSource?.damagingEntity?.typeId ?? null,
       };
 
-      this.logManager.logAction(entity.id, ActionType.ENTITY_DEATH, details);
+      this.playerActionLogManger.logAction(
+        entity.id,
+        ActionType.ENTITY_DEATH,
+        details,
+      );
     });
   }
 

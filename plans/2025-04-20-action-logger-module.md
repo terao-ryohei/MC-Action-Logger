@@ -16,8 +16,8 @@ ActionLoggerをサブモジュールとして使用可能にするための設�
 ```mermaid
 graph TB
     subgraph ActionLogger Core
-        GameManager
-        LogManager
+        MainManager
+        PlayerActionLogManger
         TimerManager
         UIManager
     end
@@ -34,11 +34,11 @@ graph TB
         ExportConfig[ExportConfig]
     end
 
-    ActionLoggerModule --> GameManager
+    ActionLoggerModule --> MainManager
     ActionLoggerModule --> ConfigManager
     ConfigManager --> LoggerConfig
     ConfigManager --> GameConfig
-    LogExporter --> LogManager
+    LogExporter --> PlayerActionLogManger
     LogExporter --> ExportConfig
 ```
 

@@ -116,7 +116,7 @@ logger.initializeExporter({
 });
 
 // ゲーム開始
-logger.startGame();
+logger.start();
 ```
 
 ### 設定オプション

@@ -188,10 +188,10 @@ getLogs(): PlayerLog[]
 getConfig(): LoggerConfiguration
 
 // ゲームの開始
-startGame(): void
+start(): void
 
 // ゲームの停止
-stopGame(): void
+stop(): void
 
 // リソースの解放
 dispose(): void

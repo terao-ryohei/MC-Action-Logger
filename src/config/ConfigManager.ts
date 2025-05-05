@@ -4,11 +4,10 @@ import {
   type LoggerFilterConfig,
   type GameTimeConfig,
   type StartItemConfig,
+  type EventHandlingConfig,
   LogLevel,
-  ActionType,
   CLOCK_ITEM_ID,
-  GAME_CONSTANTS,
-} from "../types";
+} from "../types/types";
 
 /**
  * デフォルトの表示設定
@@ -18,6 +17,14 @@ const DEFAULT_DISPLAY_CONFIG: LoggerDisplayConfig = {
   showPlayerName: true,
   showActionType: true,
   showDetails: true,
+};
+
+/**
+ * デフォルトのイベントハンドリング設定
+ */
+const DEFAULT_EVENT_HANDLING_CONFIG: EventHandlingConfig = {
+  enabled: true,
+  customHandlers: false,
 };
 
 /**
@@ -31,7 +38,7 @@ const DEFAULT_FILTER_CONFIG: LoggerFilterConfig = {
 };
 
 /**
- * デフォルトのゲーム時間設定
+ * デフォルトのログ回収時間設定
  */
 const DEFAULT_GAME_TIME_CONFIG: GameTimeConfig = {
   initialTime: 0,
@@ -64,6 +71,7 @@ export class ConfigManager {
       filters: { ...DEFAULT_FILTER_CONFIG },
       gameTime: { ...DEFAULT_GAME_TIME_CONFIG },
       startItems: [...DEFAULT_START_ITEMS],
+      eventHandling: { ...DEFAULT_EVENT_HANDLING_CONFIG },
     };
   }
 
@@ -86,6 +94,17 @@ export class ConfigManager {
       filters: { ...this.config.filters },
       gameTime: { ...this.config.gameTime },
       startItems: [...this.config.startItems],
+      eventHandling: { ...this.config.eventHandling },
+    };
+  }
+
+  /**
+   * イベントハンドリング設定を更新
+   */
+  public updateEventHandlingConfig(config: Partial<EventHandlingConfig>): void {
+    this.config.eventHandling = {
+      ...this.config.eventHandling,
+      ...config,
     };
   }
 
@@ -110,7 +129,7 @@ export class ConfigManager {
   }
 
   /**
-   * ゲーム時間設定を更新
+   * ログ回収時間設定を更新
    */
   public updateGameTimeConfig(config: Partial<GameTimeConfig>): void {
     this.config.gameTime = {
@@ -153,6 +172,9 @@ export class ConfigManager {
     if (config.startItems) {
       this.config.startItems = [...config.startItems];
     }
+    if (config.eventHandling) {
+      this.updateEventHandlingConfig(config.eventHandling);
+    }
   }
 
   /**
@@ -164,6 +186,7 @@ export class ConfigManager {
       filters: { ...DEFAULT_FILTER_CONFIG },
       gameTime: { ...DEFAULT_GAME_TIME_CONFIG },
       startItems: [...DEFAULT_START_ITEMS],
+      eventHandling: { ...DEFAULT_EVENT_HANDLING_CONFIG },
     };
   }
 

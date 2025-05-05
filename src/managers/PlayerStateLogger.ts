@@ -13,9 +13,9 @@ type FoodComponent = EntityComponent & {
   maxFoodLevel?: number;
 };
 import { world, system } from "@minecraft/server"; // world, system は実行時に必要
-import type { LogManager } from "./LogManager"; // LogManager は型としてのみ使用
-import { ActionType, GAME_CONSTANTS } from "../types"; // ActionType などは値として使用
-import type { GameManager } from "./GameManager"; // GameManager は型としてのみ使用
+import type { PlayerActionLogManger } from "./PlayerActionLogManager"; // PlayerActionLogManger は型としてのみ使用
+import { ActionType, GAME_CONSTANTS } from "../types/types"; // ActionType などは値として使用
+import type { MainManager } from "./MainManager"; // MainManagerは型としてのみ使用
 import type {
   // 型定義は型としてのみ使用
   PlayerHealthChangeDetails,
@@ -29,9 +29,9 @@ import type {
 /**
  * プレイヤーの状態変化（体力、空腹度、経験値、ステータス効果）を記録するロガー
  */
-export class PlayerStateChangeLogger {
-  private logManager: LogManager;
-  private gameManager: GameManager;
+export class PlayerStateLogger {
+  private playerActionLogManger: PlayerActionLogManger;
+  private mainManager: MainManager;
   private playerStates: Map<string, PlayerStateSnapshot>;
   private pollingIntervalId?: number;
   private readonly POLLING_INTERVAL_TICKS = GAME_CONSTANTS.TICKS_PER_SECOND; // 1秒ごとにポーリング
@@ -39,9 +39,12 @@ export class PlayerStateChangeLogger {
   // アロー関数プロパティとして定義し、this を束縛しつつ参照を固定
   private handleEffectAddBound = this.handleEffectAdd.bind(this);
 
-  constructor(logManager: LogManager, gameManager: GameManager) {
-    this.logManager = logManager;
-    this.gameManager = gameManager;
+  constructor(
+    playerActionLogManger: PlayerActionLogManger,
+    mainManager: MainManager,
+  ) {
+    this.playerActionLogManger = playerActionLogManger;
+    this.mainManager = mainManager;
     this.playerStates = new Map();
   }
 
@@ -54,7 +57,7 @@ export class PlayerStateChangeLogger {
       world.afterEvents.effectAdd.subscribe(this.handleEffectAddBound);
     });
     this.startPolling();
-    console.log("[PlayerStateChangeLogger] Initialized.");
+    console.log("[PlayerStateLogger] Initialized.");
   }
 
   /**
@@ -68,11 +71,11 @@ export class PlayerStateChangeLogger {
       });
     } catch (error) {
       console.warn(
-        `[PlayerStateChangeLogger] Error unsubscribing from effectAdd event: ${error}`,
+        `[PlayerStateLogger] Error unsubscribing from effectAdd event: ${error}`,
       );
     }
     this.stopPolling();
-    console.log("[PlayerStateChangeLogger] Disposed.");
+    console.log("[PlayerStateLogger] Disposed.");
   }
 
   /**
@@ -80,24 +83,24 @@ export class PlayerStateChangeLogger {
    */
   private startPolling(): void {
     if (this.pollingIntervalId !== undefined) {
-      console.warn("[PlayerStateChangeLogger] Polling is already running.");
+      console.warn("[PlayerStateLogger] Polling is already running.");
       return;
     }
     this.pollingIntervalId = system.runInterval(() => {
       try {
-        if (!this.gameManager.getGameState().isRunning) {
-          // ゲームが実行中でない場合は、状態を更新せずにリセットする
-          // (ゲーム再開時に初回ログが大量に出るのを防ぐため)
+        if (!this.mainManager.getGameState().isRunning) {
+          // ログ回収が実行中でない場合は、状態を更新せずにリセットする
+          // (ログ回収再開時に初回ログが大量に出るのを防ぐため)
           this.playerStates.clear();
           return;
         }
         this.pollPlayerStates();
       } catch (error: unknown) {
-        console.error("[PlayerStateChangeLogger] Error during polling:", error);
+        console.error("[PlayerStateLogger] Error during polling:", error);
       }
     }, this.POLLING_INTERVAL_TICKS);
     console.log(
-      `[PlayerStateChangeLogger] Started polling every ${this.POLLING_INTERVAL_TICKS} ticks.`,
+      `[PlayerStateLogger] Started polling every ${this.POLLING_INTERVAL_TICKS} ticks.`,
     );
   }
 
@@ -108,7 +111,7 @@ export class PlayerStateChangeLogger {
     if (this.pollingIntervalId !== undefined) {
       system.clearRun(this.pollingIntervalId);
       this.pollingIntervalId = undefined;
-      console.log("[PlayerStateChangeLogger] Stopped polling.");
+      console.log("[PlayerStateLogger] Stopped polling.");
     }
   }
 
@@ -126,7 +129,7 @@ export class PlayerStateChangeLogger {
         this.compareAndLogChanges(player, previousState, currentState);
       } else {
         // 初回は状態を記録するだけ
-        // console.log(`[PlayerStateChangeLogger] Initial state recorded for ${player.name}`);
+        // console.log(`[PlayerStateLogger] Initial state recorded for ${player.name}`);
       }
       this.playerStates.set(currentPlayerId, currentState);
     }
@@ -136,7 +139,7 @@ export class PlayerStateChangeLogger {
     for (const playerId of this.playerStates.keys()) {
       if (!currentPlayers.has(playerId)) {
         this.playerStates.delete(playerId);
-        // console.log(`[PlayerStateChangeLogger] Removed state for logged out player ${playerId}`);
+        // console.log(`[PlayerStateLogger] Removed state for logged out player ${playerId}`);
       }
     }
   }
@@ -168,7 +171,7 @@ export class PlayerStateChangeLogger {
       }
     } catch (e) {
       console.warn(
-        `[PlayerStateChangeLogger] Failed to get effects for player ${player.id}: ${e}`,
+        `[PlayerStateLogger] Failed to get effects for player ${player.id}: ${e}`,
       );
     }
 
@@ -211,7 +214,7 @@ export class PlayerStateChangeLogger {
         maxValue: healthComponent?.effectiveMax ?? 20, // 有効な最大値が取れなければデフォルト20
         // cause, sourceEntity はポーリングでは取得困難なため省略
       };
-      this.logManager.logAction(
+      this.playerActionLogManger.logAction(
         player.id,
         ActionType.PLAYER_HEALTH_CHANGE,
         details,
@@ -238,7 +241,7 @@ export class PlayerStateChangeLogger {
         previousSaturation: previous.saturationLevel,
         currentSaturation: current.saturationLevel,
       };
-      this.logManager.logAction(
+      this.playerActionLogManger.logAction(
         player.id,
         ActionType.PLAYER_HUNGER_CHANGE,
         details,
@@ -258,7 +261,7 @@ export class PlayerStateChangeLogger {
         currentProgress: current.xpProgress,
         totalExperience: current.totalExperience,
       };
-      this.logManager.logAction(
+      this.playerActionLogManger.logAction(
         player.id,
         ActionType.PLAYER_EXPERIENCE_CHANGE,
         details,
@@ -272,7 +275,7 @@ export class PlayerStateChangeLogger {
           effectType: effectType,
           reason: "expired_or_cleared", // ポーリングでは詳細な理由は不明
         };
-        this.logManager.logAction(
+        this.playerActionLogManger.logAction(
           player.id,
           ActionType.PLAYER_EFFECT_REMOVED,
           details,
@@ -290,7 +293,7 @@ export class PlayerStateChangeLogger {
    */
   private handleEffectAdd(event: EffectAddAfterEvent): void {
     try {
-      if (!this.gameManager.getGameState().isRunning) return;
+      if (!this.mainManager.getGameState().isRunning) return;
 
       const entity = event.entity;
       // プレイヤー以外は無視
@@ -305,7 +308,7 @@ export class PlayerStateChangeLogger {
         duration: effectState.duration,
       };
 
-      this.logManager.logAction(
+      this.playerActionLogManger.logAction(
         entity.id,
         ActionType.PLAYER_EFFECT_ADDED,
         details,
@@ -320,10 +323,7 @@ export class PlayerStateChangeLogger {
         });
       }
     } catch (error: unknown) {
-      console.error(
-        "[PlayerStateChangeLogger] Error handling effect add:",
-        error,
-      );
+      console.error("[PlayerStateLogger] Error handling effect add:", error);
     }
   }
 }

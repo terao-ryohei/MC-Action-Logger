@@ -82,14 +82,14 @@ export interface IScriptEventLogger {
 
 // ScriptEventLogger.ts
 export class ScriptEventLogger implements IScriptEventLogger {
-  private readonly logManager: LogManager;
+  private readonly playerActionLogManger: PlayerActionLogManger;
   private readonly eventEmitter: world.events;
   private isEnabled: boolean = false;
   private logs: ScriptLogEvent[] = [];
   private readonly maxLogs: number = 1000;
 
-  constructor(logManager: LogManager) {
-    this.logManager = logManager;
+  constructor(playerActionLogManger: PlayerActionLogManger) {
+    this.playerActionLogManger = playerActionLogManger;
     this.initializeEventHandlers();
   }
 
@@ -141,7 +141,7 @@ export class ScriptEventLogger implements IScriptEventLogger {
 ```typescript
 // UIManager.ts
 export class UIManager {
-  private readonly gameManager: GameManager;
+  private readonly mainManager: MainManager;
   private readonly actionForm: ActionFormData;
 
   public showLogUI(): void {
@@ -155,7 +155,7 @@ export class UIManager {
 
     form.show(this.player).then((response) => {
       if (response.selection === 0) {
-        this.gameManager.getScriptEventLogger().executeCommand("show", []);
+        this.mainManager.getScriptEventLogger().executeCommand("show", []);
       }
       // 他のUIハンドラー
     });

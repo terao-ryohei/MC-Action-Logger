@@ -17,7 +17,7 @@ export enum LogLevel {
 }
 ```
 
-### 2. LogManagerの拡張
+### 2. PlayerActionLogMangerの拡張
 
 #### 2.1 LogSettingsの導入
 
@@ -81,14 +81,14 @@ export class ActionTypeFilter implements LogFilter {
 
 ### 3. 実装詳細
 
-#### 3.1 LogManagerの修正
+#### 3.1 PlayerActionLogMangerの修正
 
 ```typescript
-export class LogManager {
+export class PlayerActionLogManger {
   private settings: LogSettings;
   private compositeFilter: CompositeLogFilter;
 
-  constructor(gameManager: GameManager) {
+  constructor(mainManager: MainManager) {
     this.compositeFilter = new CompositeLogFilter();
     this.settings = {
       defaultLevel: LogLevel.INFO,
@@ -154,13 +154,13 @@ export class LogManager {
 export class UIManager {
   private async showLogUI(player: Player): Promise<void> {
     // フィルタリング済みのログを使用
-    const logs = this.gameManager.getLogManager().getFilteredAllLogs();
+    const logs = this.mainManager.getLogManager().getFilteredAllLogs();
     // ... 以下既存の処理
   }
 
   private async showPlayerLogUI(player: Player, log: PlayerLog, page: number): Promise<void> {
     // フィルタリング済みのログを使用
-    const filteredLog = this.gameManager.getLogManager().getFilteredPlayerLog(log.playerId);
+    const filteredLog = this.mainManager.getLogManager().getFilteredPlayerLog(log.playerId);
     // ... 以下既存の処理
   }
 }
@@ -170,17 +170,17 @@ export class UIManager {
 
 ```typescript
 // ログレベルの変更
-logManager.updateSettings({
+playerActionLogManger.updateSettings({
   displayLevel: LogLevel.DEBUG  // すべてのログを表示
 });
 
 // 特定の時間帯のログのみを表示
 const timeFilter = new TimeRangeFilter(startTime, endTime);
-logManager.addFilter(timeFilter);
+playerActionLogManger.addFilter(timeFilter);
 
 // 特定のアクションタイプのみを表示
 const actionFilter = new ActionTypeFilter([ActionType.ATTACK, ActionType.INTERACT]);
-logManager.addFilter(actionFilter);
+playerActionLogManger.addFilter(actionFilter);
 ```
 
 ## 影響範囲
@@ -191,7 +191,7 @@ logManager.addFilter(actionFilter);
    - PlayerAction interfaceの修正
    - LogFilter interfaceの追加
 
-2. `src/managers/LogManager.ts`
+2. `src/managers/PlayerActionLogManger.ts`
    - LogSettingsの実装
    - フィルタリングメソッドの追加
    - 既存のlogAction()メソッドにログレベル処理追加
@@ -202,7 +202,7 @@ logManager.addFilter(actionFilter);
    - 表示メソッドの微修正
 
 ### 影響を受けないファイル
-1. `src/managers/GameManager.ts`
+1. `src/managers/MainManager.ts`
    - 変更の必要なし
 
 2. `src/managers/TimerManager.ts`

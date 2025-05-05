@@ -42,7 +42,7 @@ export class UIManager {
   // formatTimeAgo()の置き換え
   private formatGameTime(timestamp: number): string {
     // ゲーム内の相対時間を計算
-    const gameTime = this.gameManager.getTimerManager().getGameTime();
+    const gameTime = this.mainManager.getTimerManager().getGameTime();
     
     // 12時間制の時刻に変換
     const hour12 = gameTime.hour % 12 || 12; // 0時を12時として表示

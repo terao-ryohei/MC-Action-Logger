@@ -5,7 +5,7 @@ import type {
   ExportData,
   ExportMetadata,
   GameTimeStamp,
-} from "../types";
+} from "../types/types";
 
 /**
  * ログデータをエクスポートするクラス

@@ -83,9 +83,9 @@ export interface IBlockInteractionLogger {
   ): void;
 
   /**
-   * LogManagerにログデータをエクスポート
+   * PlayerActionLogMangerにログデータをエクスポート
    */
-  exportToLogManager(): void;
+  exportToPlayerActionLogManger(): void;
 
   /**
    * 未使用のブロック状態をクリーンアップ

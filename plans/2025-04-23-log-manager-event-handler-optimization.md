@@ -1,8 +1,8 @@
-# LogManager イベントハンドラ最適化設計
+# PlayerActionLogManger イベントハンドラ最適化設計
 
 ## 概要
 
-LogManagerのinitializeEventHandlers()メソッドを改善し、フィルタリング状況に応じて必要なハンドラのみを有効化する設計を提案します。また、移動チェックの頻度を設定可能にします。
+PlayerActionLogMangerのinitializeEventHandlers()メソッドを改善し、フィルタリング状況に応じて必要なハンドラのみを有効化する設計を提案します。また、移動チェックの頻度を設定可能にします。
 
 ## 設計詳細
 
@@ -103,7 +103,7 @@ private startMovementCheck(): void {
   try {
     this.movementCheckRunId = system.runInterval(() => {
       try {
-        if (!this.gameManager.getGameState().isRunning) return;
+        if (!this.mainManager.getGameState().isRunning) return;
 
         const players = world.getAllPlayers();
         for (const player of players) {

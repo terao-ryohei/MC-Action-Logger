@@ -1,5 +1,5 @@
-import { GameManager } from "./managers/GameManager";
-import type { LogManager } from "./managers/LogManager";
+import { MainManager } from "./managers/MainManager";
+import type { PlayerActionLogManger } from "./managers/PlayerActionLogManager";
 import type { TimerManager } from "./managers/TimerManager";
 import type { UIManager } from "./managers/UIManager";
 import { ConfigManager } from "./config/ConfigManager";
@@ -8,7 +8,7 @@ import type {
   LoggerConfiguration,
   ExportConfiguration,
   PlayerLog,
-} from "./types";
+} from "./types/types";
 
 /**
  * ActionLoggerのメインモジュールクラス
@@ -17,18 +17,18 @@ export class ActionLoggerModule {
   private static instance: ActionLoggerModule | null = null;
   private configManager: ConfigManager;
   private logExporter: LogExporter | null = null;
-  private gameManager: GameManager;
-  private logManager: LogManager;
+  private mainManager: MainManager;
+  private playerActionLogManger: PlayerActionLogManger;
   private timerManager: TimerManager;
   private uiManager: UIManager;
-  private isInitialized = false;
+  private eventHandlers = new Set<() => void>();
 
   private constructor() {
     this.configManager = ConfigManager.getInstance();
-    this.gameManager = GameManager.getInstance();
-    this.logManager = this.gameManager.getLogManager();
-    this.timerManager = this.gameManager.getTimerManager();
-    this.uiManager = this.gameManager.getUIManager();
+    this.mainManager = MainManager.getInstance();
+    this.playerActionLogManger = this.mainManager.getPlayerActionLogManger();
+    this.timerManager = this.mainManager.getTimerManager();
+    this.uiManager = this.mainManager.getUIManager();
   }
 
   /**
@@ -44,32 +44,25 @@ export class ActionLoggerModule {
   /**
    * モジュールの初期化
    */
-  public initialize(config?: Partial<LoggerConfiguration>): void {
-    if (this.isInitialized) {
-      console.warn("ActionLoggerModuleは既に初期化されています");
-      return;
-    }
-
+  public initialize(initialConfig?: Partial<LoggerConfiguration>): void {
     try {
       // 設定の初期化
-      if (config) {
-        this.configManager.updateConfig(config);
+      if (initialConfig) {
+        this.configManager.updateConfig(initialConfig);
       }
 
-      // 各マネージャーの初期化
+      this.initializeEventHandlers();
+
       const currentConfig = this.configManager.getConfig();
 
-      // ゲーム時間の設定を反映
-      this.timerManager.updateGameTimeConfig(currentConfig.gameTime);
-
-      // フィルター設定を反映
-      this.logManager.updateSettings({
+      this.playerActionLogManger.updateSettings({
         defaultLevel: currentConfig.filters.minLogLevel,
         displayLevel: currentConfig.filters.minLogLevel,
         filters: currentConfig.filters.customFilters,
       });
 
-      this.isInitialized = true;
+      this.timerManager.updateGameTimeConfig(currentConfig.gameTime);
+
       console.log("ActionLoggerModuleの初期化が完了しました");
     } catch (error) {
       console.error(
@@ -90,7 +83,7 @@ export class ActionLoggerModule {
 
       // 各マネージャーの設定を更新
       this.timerManager.updateGameTimeConfig(currentConfig.gameTime);
-      this.logManager.updateSettings({
+      this.playerActionLogManger.updateSettings({
         defaultLevel: currentConfig.filters.minLogLevel,
         displayLevel: currentConfig.filters.minLogLevel,
         filters: currentConfig.filters.customFilters,
@@ -122,7 +115,7 @@ export class ActionLoggerModule {
     }
 
     try {
-      const logs = this.logManager.getAllLogs();
+      const logs = this.playerActionLogManger.getAllLogs();
       await this.logExporter.exportLogs(logs);
     } catch (error) {
       console.error("ログのエクスポート中にエラーが発生しました:", error);
@@ -134,7 +127,7 @@ export class ActionLoggerModule {
    * 全ログの取得
    */
   public getLogs(): PlayerLog[] {
-    return this.logManager.getAllLogs();
+    return this.playerActionLogManger.getAllLogs();
   }
 
   /**
@@ -145,42 +138,172 @@ export class ActionLoggerModule {
   }
 
   /**
-   * ゲームの開始
+   * ロガーの起動（外部からの起動向け）
+   * @throws Error 起動に失敗した場合
    */
-  public startGame(): void {
-    if (!this.isInitialized) {
-      throw new Error("モジュールが初期化されていません");
-    }
+  public start(): void {
+    try {
+      this.mainManager.startGame();
 
-    // ゲーム開始時の処理
-    this.timerManager.start();
+      console.log("ActionLoggerModuleを起動しました");
+    } catch (error) {
+      console.error("ActionLoggerModuleの起動中にエラーが発生しました:", error);
+      throw error;
+    }
   }
 
   /**
-   * ゲームの停止
+   * ロガーの停止（外部からの起動向け）
+   * @throws Error 停止に失敗した場合
    */
-  public stopGame(): void {
-    this.timerManager.stop();
+  public stop(): void {
+    try {
+      // イベントハンドラの解除
+      this.removeAllEventHandlers();
+
+      this.mainManager.endGame();
+
+      console.log("ActionLoggerModuleを停止しました");
+    } catch (error) {
+      console.error("ActionLoggerModuleの停止中にエラーが発生しました:", error);
+      throw error;
+    }
+  }
+
+  /**
+   * イベントハンドラの登録
+   * @param handler イベントハンドラ関数
+   * @throws Error ハンドラの登録に失敗した場合
+   */
+  public registerEventHandler(handler: () => void): void {
+    try {
+      if (!handler) {
+        throw new Error("ハンドラが指定されていません");
+      }
+
+      this.eventHandlers.add(handler);
+      if (this.isActive()) {
+        try {
+          handler(); // 既に起動している場合は即座に実行
+        } catch (error) {
+          throw new Error(
+            `ハンドラの実行に失敗しました: ${error instanceof Error ? error.message : "Unknown error"}`,
+          );
+        }
+      }
+    } catch (error) {
+      console.error("イベントハンドラの登録中にエラーが発生しました:", error);
+      throw error;
+    }
+  }
+
+  /**
+   * イベントハンドラの解除
+   * @param handler イベントハンドラ関数
+   * @throws Error ハンドラの解除に失敗した場合
+   */
+  public removeEventHandler(handler: () => void): void {
+    try {
+      if (!handler) {
+        throw new Error("ハンドラが指定されていません");
+      }
+
+      this.eventHandlers.delete(handler);
+    } catch (error) {
+      console.error("イベントハンドラの解除中にエラーが発生しました:", error);
+      throw error;
+    }
+  }
+
+  /**
+   * 全イベントハンドラの解除
+   * @throws Error ハンドラの解除に失敗した場合
+   */
+  private removeAllEventHandlers(): void {
+    try {
+      this.eventHandlers.clear();
+    } catch (error) {
+      console.error("全イベントハンドラの解除中にエラーが発生しました:", error);
+      throw error;
+    }
+  }
+
+  /**
+   * イベントハンドラの初期化
+   * @throws Error ハンドラの初期化に失敗した場合
+   */
+  private initializeEventHandlers(): void {
+    try {
+      for (const handler of this.eventHandlers) {
+        try {
+          handler();
+        } catch (error) {
+          throw new Error(
+            `ハンドラの実行に失敗しました: ${error instanceof Error ? error.message : "Unknown error"}`,
+          );
+        }
+      }
+    } catch (error) {
+      console.error("イベントハンドラの初期化中にエラーが発生しました:", error);
+      throw error;
+    }
+  }
+
+  /**
+   * 実行状態の取得
+   * @returns ロガーが実行中かどうか
+   * @throws Error 状態の取得に失敗した場合
+   */
+  public isActive(): boolean {
+    try {
+      return this.mainManager.getGameState().isRunning;
+    } catch (error) {
+      console.error("実行状態の取得中にエラーが発生しました:", error);
+      throw error;
+    }
   }
 
   /**
    * リソースの解放
+   * @throws Error リソース解放に失敗した場合
    */
   public dispose(): void {
-    this.gameManager.dispose();
-    this.logManager.dispose();
-    this.timerManager.dispose();
-    this.uiManager.dispose();
-    ConfigManager.dispose();
-    ActionLoggerModule.instance = null;
+    try {
+      if (this.isActive()) {
+        this.stop();
+      }
+
+      // 各マネージャーのリソースを解放
+      this.mainManager.dispose();
+      this.playerActionLogManger.dispose();
+      this.timerManager.dispose();
+      this.uiManager.dispose();
+      ConfigManager.dispose();
+
+      // インスタンスをクリア
+      ActionLoggerModule.instance = null;
+      this.logExporter = null;
+      this.eventHandlers.clear();
+
+      console.log("ActionLoggerModuleのリソースを解放しました");
+    } catch (error) {
+      console.error("リソース解放中にエラーが発生しました:", error);
+      throw error;
+    }
   }
 
   /**
    * インスタンスの破棄
+   * @throws Error インスタンスの破棄に失敗した場合
    */
   public static dispose(): void {
-    if (ActionLoggerModule.instance) {
-      ActionLoggerModule.instance.dispose();
+    try {
+      if (ActionLoggerModule.instance) {
+        ActionLoggerModule.instance.dispose();
+      }
+    } catch (error) {
+      console.error("インスタンスの破棄中にエラーが発生しました:", error);
+      throw error;
     }
   }
 }

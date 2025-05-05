@@ -1,5 +1,5 @@
 import type { Player, Vector3 } from "@minecraft/server";
-import type { LogManager } from "./LogManager";
+import type { PlayerActionLogManger } from "./PlayerActionLogManager";
 import type { IBlockInteractionLogger } from "./interfaces/IBlockInteractionLogger";
 import type {
   BlockInteraction,
@@ -10,7 +10,7 @@ import type {
   BlockActionType,
   BlockPosition,
 } from "./types/BlockInteractionTypes";
-import { ActionType } from "../types";
+import { ActionType } from "../types/types";
 
 /**
  * ブロックの種類に応じたカテゴリー定義
@@ -147,13 +147,13 @@ const BlockDefinitions: Record<
  */
 export class BlockInteractionLogger implements IBlockInteractionLogger {
   private interactions: BlockInteraction[] = [];
-  private readonly logManager: LogManager;
+  private readonly playerActionLogManger: PlayerActionLogManger;
   private readonly maxHistorySize: number = 1000;
   private blockStates = new Map<string, BlockState>();
   private messageTemplates = new Map<string, Record<string, MessageTemplate>>();
 
-  constructor(logManager: LogManager) {
-    this.logManager = logManager;
+  constructor(playerActionLogManger: PlayerActionLogManger) {
+    this.playerActionLogManger = playerActionLogManger;
   }
 
   /**
@@ -269,7 +269,7 @@ export class BlockInteractionLogger implements IBlockInteractionLogger {
       // logAction に渡す details は BlockInteraction オブジェクト全体とする
       // LogLevel は logAction 内部で決定されるため、ここでは渡さない
       // プレイヤーのアクションとしてログを記録
-      this.logManager.logAction(playerId, ActionType.INTERACT, {
+      this.playerActionLogManger.logAction(playerId, ActionType.INTERACT, {
         blockId: interaction.blockId,
         position: interaction.position,
         action: interaction.action,
@@ -459,9 +459,9 @@ export class BlockInteractionLogger implements IBlockInteractionLogger {
   }
 
   /**
-   * LogManagerにログデータをエクスポート
+   * PlayerActionLogMangerにログデータをエクスポート
    */
-  public exportToLogManager(): void {
+  public exportToPlayerActionLogManger(): void {
     console.info(
       `${this.interactions.length}件のインタラクションログを記録済み`,
     );

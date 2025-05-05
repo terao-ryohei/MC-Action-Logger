@@ -6,25 +6,25 @@
 ## 1. 概要
 
 この設計書は、Minecraft Script API を使用して、ワールド内のエンティティのライフサイクルイベント（スポーン、デスポーン、死亡）と、プレイヤーの状態変化（体力、空腹度、経験値、ステータス効果）を記録するための新しいロガー機能の設計を定義するのだ。
-これらのロガーは既存の `LogManager` と連携し、統一されたログ管理システムの一部として機能するのだ。
+これらのロガーは既存の `PlayerActionLogManger` と連携し、統一されたログ管理システムの一部として機能するのだ。
 
 ## 2. 共通設計
 
-### 2.1. LogManager との連携
+### 2.1. PlayerActionLogManger との連携
 
-*   新しいロガークラスとして `EntityLifecycleLogger` と `PlayerStateChangeLogger` を作成するのだ。
-*   これらのクラスは、初期化時に `LogManager` のインスタンスを受け取るのだ。
-*   ログの記録は、受け取った `LogManager` インスタンスの `logAction(playerId: string, type: ActionType, details: unknown)` メソッドを呼び出すことで行うのだ。
+*   新しいロガークラスとして `EntityLifecycleLogger` と `PlayerStateLogger` を作成するのだ。
+*   これらのクラスは、初期化時に `PlayerActionLogManger` のインスタンスを受け取るのだ。
+*   ログの記録は、受け取った `PlayerActionLogManger` インスタンスの `logAction(playerId: string, type: ActionType, details: unknown)` メソッドを呼び出すことで行うのだ。
     *   エンティティ関連のログでは `playerId` にエンティティの ID を、プレイヤー関連ではプレイヤー ID を使用するのだ。システム起因の場合は `"system"` など、識別可能なIDを使うのだ。
-*   `GameManager` が `EntityLifecycleLogger` と `PlayerStateChangeLogger` のインスタンスを保持し、初期化時に `LogManager` を注入する構成にするのだ。
+*   `MainManager` が `EntityLifecycleLogger` と `PlayerStateLogger` のインスタンスを保持し、初期化時に `PlayerActionLogManger` を注入する構成にするのだ。
 
 ```mermaid
 graph TD
-    GameManager --> LogManager
-    GameManager --> EntityLifecycleLogger
-    GameManager --> PlayerStateChangeLogger
-    EntityLifecycleLogger -- logs --> LogManager
-    PlayerStateChangeLogger -- logs --> LogManager
+    MainManager --> PlayerActionLogManger
+    MainManager --> EntityLifecycleLogger
+    MainManager --> PlayerStateLogger
+    EntityLifecycleLogger -- logs --> PlayerActionLogManger
+    PlayerStateLogger -- logs --> PlayerActionLogManger
 ```
 
 ### 2.2. ActionType の追加案
@@ -56,10 +56,10 @@ export enum ActionType {
 
 ### 2.3. LogSettings の考慮事項
 
-`LogManager` の `settings.actionTypeSettings` で、新しい `ActionType` ごとのデフォルトログレベルを設定できるようにするのだ。これにより、ユーザーが表示するログレベルを調整できるようになるのだ。
+`PlayerActionLogManger` の `settings.actionTypeSettings` で、新しい `ActionType` ごとのデフォルトログレベルを設定できるようにするのだ。これにより、ユーザーが表示するログレベルを調整できるようになるのだ。
 
 ```typescript
-// LogManager 内の settings 初期化部分に追加
+// PlayerActionLogManger 内の settings 初期化部分に追加
 actionTypeSettings: new Map([
   // ... 既存の設定
   [ActionType.ENTITY_SPAWN, LogLevel.DEBUG], // スポーンはデバッグ情報レベル
@@ -81,7 +81,7 @@ actionTypeSettings: new Map([
 
 ### 3.2. 記録する情報
 
-以下の情報をJSON形式で `LogManager.logAction` の `details` に格納するのだ。
+以下の情報をJSON形式で `PlayerActionLogManger.logAction` の `details` に格納するのだ。
 
 ```typescript
 // ActionType.ENTITY_SPAWN の details
@@ -128,7 +128,7 @@ interface EntityDespawnDetails {
 
 ### 3.4. ログフォーマット (JSON 例)
 
-`LogManager` によってラップされる前の、`logAction` に渡す `details` 部分の例なのだ。
+`PlayerActionLogManger` によってラップされる前の、`logAction` に渡す `details` 部分の例なのだ。
 
 ```json
 // スポーンログの details 例
@@ -168,12 +168,12 @@ interface EntityDespawnDetails {
     *   `EntityLifecycleLogger` クラスを作成するのだ。
     *   `entitySpawn` イベントを購読し、スポーンログを記録するのだ。
     *   `entityDie` イベントを購読し、死亡ログ（原因、加害者情報含む）を記録するのだ。
-    *   `LogManager` と連携してログを記録するのだ。
+    *   `PlayerActionLogManger` と連携してログを記録するのだ。
     *   プレイヤーエンティティのイベントは無視するのだ (プレイヤーログは別で管理)。
 *   **やらないこと:**
     *   エンティティのデスポーンイベントの記録 (直接的なAPIがないため)。
     *   エンティティの属性変化（体力など）の記録 (Player State Change Logger の範疇)。
-    *   ログの永続化（`LogManager` または外部システムが担当）。
+    *   ログの永続化（`PlayerActionLogManger` または外部システムが担当）。
 
 ### 3.6. 動作確認項目
 
@@ -184,7 +184,7 @@ interface EntityDespawnDetails {
 *   [ ] エンティティが溶岩などで死亡した際に `entity_death` ログが記録され、適切な `cause` が記録されること。
 *   [ ] プレイヤー自身のスポーンや死亡イベントで `EntityLifecycleLogger` がログを記録しないこと。
 *   [ ] 記録されるログの `details` が指定された JSON フォーマットに従っていること。
-*   [ ] `LogManager` のフィルター設定やログレベル設定が `entity_spawn`, `entity_death` ログに適用されること。
+*   [ ] `PlayerActionLogManger` のフィルター設定やログレベル設定が `entity_spawn`, `entity_death` ログに適用されること。
 
 ## 4. Player State Change Logger 設計
 
@@ -194,7 +194,7 @@ interface EntityDespawnDetails {
 
 ### 4.2. 記録する情報
 
-以下の情報をJSON形式で `LogManager.logAction` の `details` に格納するのだ。
+以下の情報をJSON形式で `PlayerActionLogManger.logAction` の `details` に格納するのだ。
 
 ```typescript
 // ActionType.PLAYER_HEALTH_CHANGE の details
@@ -260,11 +260,11 @@ interface PlayerEffectRemovedDetails {
 *   **ポーリング実装の注意点:**
     *   各プレイヤーの前回の状態（体力、空腹度、経験値、効果リスト）を `Map<string, PlayerState>` のような形で保持する必要があるのだ。
     *   ポーリング間隔は、ログの粒度とパフォーマンスのトレードオフで決定するのだ (初期値: 20 ticks)。
-    *   `GameManager` のゲーム実行状態 (`isRunning`) を確認し、ゲームが停止している間はポーリング処理も停止するようにするのだ。
+    *   `MainManager` のゲーム実行状態 (`isRunning`) を確認し、ゲームが停止している間はポーリング処理も停止するようにするのだ。
 
 ### 4.4. ログフォーマット (JSON 例)
 
-`LogManager` によってラップされる前の、`logAction` に渡す `details` 部分の例なのだ。
+`PlayerActionLogManger` によってラップされる前の、`logAction` に渡す `details` 部分の例なのだ。
 
 ```json
 // 体力変化ログの details 例 (ダメージ)
@@ -312,16 +312,16 @@ interface PlayerEffectRemovedDetails {
 ### 4.5. やること / やらないこと
 
 *   **やること:**
-    *   `PlayerStateChangeLogger` クラスを作成するのだ。
+    *   `PlayerStateLogger` クラスを作成するのだ。
     *   体力、空腹度、経験値の変化を定期的なポーリングで検知し、ログを記録するのだ。
     *   `effectAdd` イベントを購読し、効果追加ログを記録するのだ。
     *   ステータス効果の除去を定期的なポーリングで検知し、ログを記録するのだ。
-    *   `LogManager` と連携してログを記録するのだ。
+    *   `PlayerActionLogManger` と連携してログを記録するのだ。
     *   各プレイヤーの前回の状態を保持する仕組みを実装するのだ。
 *   **やらないこと:**
     *   体力変化の原因 (`cause`, `sourceEntity`) を `entityHurt` イベントとポーリング結果を紐付けて詳細に記録すること（初期実装では複雑なため見送り、ポーリングでの値変化のみを記録）。
     *   ステータス効果の `amplifier` や `duration` の変化の記録（追加と除去のみ）。
-    *   ログの永続化（`LogManager` または外部システムが担当）。
+    *   ログの永続化（`PlayerActionLogManger` または外部システムが担当）。
     *   パフォーマンス影響が大きい場合のポーリング間隔の動的な調整。
 
 ### 4.6. 動作確認項目
@@ -337,4 +337,4 @@ interface PlayerEffectRemovedDetails {
 *   [ ] プレイヤーが牛乳を飲んで効果を消去した際に `player_effect_removed` ログが記録されること。
 *   [ ] ポーリング処理がゲーム停止時に適切に停止・再開すること。
 *   [ ] 記録されるログの `details` が指定された JSON フォーマットに従っていること。
-*   [ ] `LogManager` のフィルター設定やログレベル設定が各種プレイヤー状態変化ログに適用されること。
+*   [ ] `PlayerActionLogManger` のフィルター設定やログレベル設定が各種プレイヤー状態変化ログに適用されること。

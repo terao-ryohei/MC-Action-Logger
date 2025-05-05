@@ -32,19 +32,19 @@ interface PlayerAction {
 }
 ```
 
-### 2. LogManagerの機能拡張
+### 2. PlayerActionLogMangerの機能拡張
 
-- GameManagerを介してTimerManagerにアクセス
+- MainManagerを介してTimerManagerにアクセス
 - アクション記録時にゲーム内時刻を取得
 - 時刻情報を含んだログの記録
 
 ```typescript
-class LogManager {
-  private gameManager: GameManager;
+class PlayerActionLogManger {
+  private mainManager: MainManager;
 
   private createGameTimeStamp(): GameTimeStamp {
     const realTime = Date.now();
-    const gameTime = this.gameManager.getTimerManager().getGameTime();
+    const gameTime = this.mainManager.getTimerManager().getGameTime();
     return { realTime, gameTime };
   }
 
@@ -71,7 +71,7 @@ Day 1, 14:15 - プレイヤーBがブロックと相互作用
 ## やること
 
 - [ ] types.tsにGameTimeStamp interfaceを追加
-- [ ] LogManagerにゲーム内時刻の取得・記録機能を実装
+- [ ] PlayerActionLogMangerにゲーム内時刻の取得・記録機能を実装
 - [ ] ログ出力時のフォーマット調整
 - [ ] UIManagerでの表示フォーマットの更新
 
@@ -127,6 +127,6 @@ Day 1, 14:15 - プレイヤーBがブロックと相互作用
    - 人間が読みやすい形式を採用
    - ゲーム内の文脈を理解しやすい表現を選択
 
-3. LogManager拡張方式
+3. PlayerActionLogManger拡張方式
    - 既存のコードの変更を最小限に抑制
    - 責務の分離を維持

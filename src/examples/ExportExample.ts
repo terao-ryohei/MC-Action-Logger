@@ -1,5 +1,5 @@
 import { ActionLoggerModule } from "../ActionLoggerModule";
-import { LogLevel, ActionType } from "../types";
+import { LogLevel, ActionType } from "../types/types";
 
 /**
  * ログエクスポートの使用例
@@ -37,8 +37,8 @@ export async function exportExample(): Promise<void> {
     outputPath: "./logs",
   });
 
-  // ゲーム開始
-  logger.startGame();
+  // ログ回収開始
+  logger.start();
 
   // 1分後にログをエクスポート
   setTimeout(async () => {
@@ -59,9 +59,9 @@ export async function exportExample(): Promise<void> {
     )}`,
   );
 
-  // ゲーム終了時の処理
+  // ログ回収終了時の処理
   setTimeout(() => {
-    logger.stopGame();
+    logger.stop();
     logger.dispose();
   }, 1800000);
 }

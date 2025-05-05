@@ -1,31 +1,16 @@
-import { system } from "@minecraft/server";
-import { GameManager } from "./managers/GameManager";
+import { MainManager } from "./managers/MainManager";
 import { setupScriptEvents } from "./examples/ScriptEventExample";
 
-// ゲームマネージャーのインスタンス化
-const gameManager = GameManager.getInstance();
+// ログ回収マネージャーのインスタンス化
+const mainManager = MainManager.getInstance();
 
 // スクリプトイベントの設定
-setupScriptEvents(gameManager);
-
-// システムの初期化完了をログに出力
-system.runInterval(() => {
-  try {
-    if (!gameManager.getGameState().isRunning) {
-      // world.sendMessage(
-      //   "§aシステムの準備が完了しました。時計を使用してゲームを開始してください。",
-      // );
-      return;
-    }
-  } catch (error) {
-    console.error("システム初期化中にエラーが発生しました:", error);
-  }
-}, 100);
+setupScriptEvents(mainManager);
 
 // 基本コンポーネントのエクスポート
-export { gameManager };
-export { GameManager } from "./managers/GameManager";
-export { LogManager } from "./managers/LogManager";
+export { mainManager };
+export { MainManager } from "./managers/MainManager";
+export { PlayerActionLogManger } from "./managers/PlayerActionLogManager";
 export { TimerManager } from "./managers/TimerManager";
 export { UIManager } from "./managers/UIManager";
 export { BlockInteractionLogger } from "./managers/BlockInteractionLogger";

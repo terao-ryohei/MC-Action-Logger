@@ -1,12 +1,12 @@
 import { world, Player as MCPlayer, ItemStack } from "@minecraft/server";
 import { ActionFormData } from "@minecraft/server-ui";
-import type { GameManager } from "./GameManager";
+import type { MainManager } from "./MainManager";
 import {
   type PlayerLog,
   ActionType,
   PAPER_ITEM_ID,
   type PlayerAction,
-} from "../types";
+} from "../types/types";
 import type {
   ExtendedBlockAction,
   ItemInfo,
@@ -22,13 +22,13 @@ import type {
  * UI表示を管理するクラス
  */
 export class UIManager {
-  private gameManager: GameManager;
+  private mainManager: MainManager;
   private eventUnsubscribe: (() => void) | null = null;
   private playerNameCache: Map<string, string> = new Map();
   private readonly ITEMS_PER_PAGE = 10;
 
-  constructor(gameManager: GameManager) {
-    this.gameManager = gameManager;
+  constructor(mainManager: MainManager) {
+    this.mainManager = mainManager;
     try {
       this.initializeEventHandlers();
     } catch (error) {
@@ -116,7 +116,9 @@ export class UIManager {
    */
   private async showLogUI(player: MCPlayer): Promise<void> {
     try {
-      const logs = this.gameManager.getLogManager().getFilteredAllLogs();
+      const logs = this.mainManager
+        .getPlayerActionLogManger()
+        .getFilteredAllLogs();
       if (logs.length === 0) {
         player.sendMessage("§c記録されたログがありません。");
         return;
@@ -219,7 +221,9 @@ export class UIManager {
           return;
         }
         if (response.selection === buttonIndex++) {
-          const logs = this.gameManager.getLogManager().getFilteredAllLogs();
+          const logs = this.mainManager
+            .getPlayerActionLogManger()
+            .getFilteredAllLogs();
           await this.showPlayerSelectionUI(player, logs);
         }
       }
@@ -234,7 +238,7 @@ export class UIManager {
    */
   private async showEventCategorySelectionUI(player: MCPlayer): Promise<void> {
     try {
-      const scriptEventLogger = this.gameManager.getScriptEventLogger();
+      const scriptEventLogger = this.mainManager.getScriptEventLogger();
       const form = new ActionFormData()
         .title("イベント別記録")
         .body("確認したいイベントの種類を選択してください。");
@@ -512,7 +516,7 @@ export class UIManager {
     parameters: ParameterData;
   }): string {
     try {
-      const scriptEventLogger = this.gameManager.getScriptEventLogger();
+      const scriptEventLogger = this.mainManager.getScriptEventLogger();
       const eventDef = scriptEventLogger.getEventDefinition(details.eventId);
 
       if (!eventDef) {

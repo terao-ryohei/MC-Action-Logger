@@ -203,13 +203,21 @@ export interface StartItemConfig {
 }
 
 /**
- * ロガーモジュールの設定インターフェース
+ * イベントハンドリングの設定インターフェース
  */
+export interface EventHandlingConfig {
+  /** イベントハンドリングを有効にするかどうか */
+  enabled: boolean;
+  /** カスタムハンドラーを有効にするかどうか */
+  customHandlers: boolean;
+}
+
 export interface LoggerConfiguration {
   displayItems: LoggerDisplayConfig;
   filters: LoggerFilterConfig;
   gameTime: GameTimeConfig;
   startItems: StartItemConfig[];
+  eventHandling: EventHandlingConfig;
 }
 
 /**

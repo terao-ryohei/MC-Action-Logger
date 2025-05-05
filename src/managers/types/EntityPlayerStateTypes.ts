@@ -89,7 +89,7 @@ export interface PlayerEffectRemovedDetails {
 }
 
 /**
- * PlayerStateChangeLogger でプレイヤーの状態を保持するためのインターフェース
+ * PlayerStateLogger でプレイヤーの状態を保持するためのインターフェース
  */
 export interface PlayerStateSnapshot {
   health: number;

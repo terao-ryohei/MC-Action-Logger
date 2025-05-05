@@ -1,23 +1,24 @@
 import { world, system, type Player } from "@minecraft/server";
-import type { GameManager } from "./GameManager";
-import { GAME_CONSTANTS, type GameTimeConfig } from "../types";
+import type { MainManager } from "./MainManager";
+import { GAME_CONSTANTS, type GameTimeConfig } from "../types/types";
 
 /**
  * タイマー機能を管理するクラス
  */
 export class TimerManager {
-  private gameManager: GameManager;
+  private mainManager: MainManager;
   private tickCallback: () => void;
   private runScheduleId: number | undefined;
   private lastWarningTime = 0;
   private gameStartTime = 0; // ゲーム開始時のタイムスタンプ
   private readonly WARNING_COOLDOWN = 1000; // 警告音のクールダウン（ミリ秒）
   private gameTimeConfig: GameTimeConfig;
+  private isEnabled = false; // タイマーの有効/無効状態を管理
 
-  constructor(gameManager: GameManager) {
-    this.gameManager = gameManager;
+  constructor(mainManager: MainManager) {
+    this.mainManager = mainManager;
     this.tickCallback = this.tick.bind(this);
-    // デフォルトのゲーム時間設定
+    // デフォルトのログ回収時間設定
     this.gameTimeConfig = {
       initialTime: 0,
       timeScale: 1,
@@ -30,10 +31,19 @@ export class TimerManager {
    */
   public start(): void {
     try {
-      if (this.runScheduleId !== undefined) {
+      if (!this.isEnabled || this.runScheduleId !== undefined) {
+        console.log("タイマーは無効化されているか、既に実行中です");
         return;
       }
+
+      const gameState = this.mainManager.getGameState();
+      if (!gameState.isRunning) {
+        console.log("ログ回収が実行中でないため、タイマーを開始できません");
+        return;
+      }
+
       this.gameStartTime = Date.now() + this.gameTimeConfig.initialTime;
+      console.log("タイマーを開始します");
 
       // 1秒ごとにtickを実行
       this.runScheduleId = system.runInterval(
@@ -67,17 +77,17 @@ export class TimerManager {
    */
   private tick(): void {
     try {
-      const gameState = this.gameManager.getGameState();
+      const gameState = this.mainManager.getGameState();
       if (!gameState.isRunning || gameState.remainingTime <= 0) {
         this.stop();
         if (gameState.remainingTime <= 0) {
-          this.gameManager.endGame();
+          this.mainManager.endGame();
         }
         return;
       }
 
-      // GameManagerを通じて残り時間を更新
-      this.gameManager.updateRemainingTime(gameState.remainingTime - 1);
+      // MainManagerを通じて残り時間を更新
+      this.mainManager.updateRemainingTime(gameState.remainingTime - 1);
 
       // 残り時間の表示
       this.displayTime(gameState.remainingTime - 1);
@@ -156,7 +166,7 @@ export class TimerManager {
   }
 
   /**
-   * ゲーム内時間の取得
+   * ログ回収内時間の取得
    */
   public getGameTime(): {
     day: number;
@@ -165,7 +175,7 @@ export class TimerManager {
     isAM: boolean;
   } {
     try {
-      // マインクラフトのゲーム内時間を取得（0-24000）
+      // マインクラフトのログ回収内時間を取得（0-24000）
       const timeOfDay = world.getTimeOfDay();
 
       // 時間の計算（1時間 = 1000 ticks）
@@ -184,7 +194,7 @@ export class TimerManager {
         isAM: hour < 12,
       };
     } catch (error) {
-      console.error("ゲーム内時間の取得中にエラーが発生しました:", error);
+      console.error("ログ回収内時間の取得中にエラーが発生しました:", error);
       // エラー時はデフォルト値を返す（1日目 00:00 午前）
       return {
         day: 1,
@@ -196,13 +206,21 @@ export class TimerManager {
   }
 
   /**
-   * ゲーム時間設定の更新
+   * ログ回収時間設定の更新
    */
   public updateGameTimeConfig(config: Partial<GameTimeConfig>): void {
     this.gameTimeConfig = {
       ...this.gameTimeConfig,
       ...config,
     };
+
+    // タイマーの有効/無効状態を設定
+    this.isEnabled = config.timeScale !== 0;
+
+    if (!this.isEnabled && this.runScheduleId !== undefined) {
+      console.log("タイマーを無効化します");
+      this.stop();
+    }
   }
 
   /**

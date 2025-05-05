@@ -6,7 +6,7 @@ import {
   type EntityHurtAfterEvent,
   type PlayerInteractWithBlockAfterEvent,
 } from "@minecraft/server";
-import type { GameManager } from "./GameManager";
+import type { MainManager } from "./MainManager";
 import {
   type PlayerLog,
   type PlayerAction,
@@ -16,7 +16,7 @@ import {
   type LogSettings,
   CompositeLogFilter,
   type GameTimeStamp,
-} from "../types";
+} from "../types/types";
 
 /**
  * プレイヤーのアクションログを管理するクラス
@@ -36,9 +36,9 @@ interface SubscriptionMap {
   interact: null | { handler: EventHandler<PlayerInteractWithBlockAfterEvent> };
 }
 
-export class LogManager {
+export class PlayerActionLogManger {
   private readonly DEFAULT_MOVEMENT_CHECK_INTERVAL = 2;
-  private gameManager: GameManager;
+  private mainManager: MainManager;
   private shouldDisplayAction(action: PlayerAction): boolean {
     const levelCheck = action.level >= this.settings.displayLevel;
     const filterCheck =
@@ -66,8 +66,8 @@ export class LogManager {
   private readonly MIN_JUMP_HEIGHT = 0.5;
   private readonly JUMP_COOLDOWN = 500; // ミリ秒
 
-  constructor(gameManager: GameManager) {
-    this.gameManager = gameManager;
+  constructor(mainManager: MainManager) {
+    this.mainManager = mainManager;
     this.logs = new Map();
     this.lastJumpTime = new Map();
     this.lastPositions = new Map();
@@ -91,7 +91,10 @@ export class LogManager {
     try {
       this.initializeEventHandlers();
     } catch (error) {
-      console.error("LogManagerの初期化中にエラーが発生しました:", error);
+      console.error(
+        "PlayerActionLogMangerの初期化中にエラーが発生しました:",
+        error,
+      );
       throw error;
     }
   }
@@ -188,7 +191,7 @@ export class LogManager {
     try {
       this.movementCheckRunId = system.runInterval(() => {
         try {
-          if (!this.gameManager.getGameState().isRunning) return;
+          if (!this.mainManager.getGameState().isRunning) return;
 
           const players = world.getAllPlayers();
           for (const player of players) {
@@ -278,7 +281,7 @@ export class LogManager {
    */
   private handleAttack(event: EntityHurtAfterEvent): void {
     try {
-      if (!this.gameManager.getGameState().isRunning) return;
+      if (!this.mainManager.getGameState().isRunning) return;
       const attacker = event.damageSource.damagingEntity;
       if (!attacker || !(attacker instanceof Player)) return;
 
@@ -298,11 +301,11 @@ export class LogManager {
     block: { typeId: string; location: Vector3 };
   }): void {
     try {
-      if (!this.gameManager.getGameState().isRunning) return;
+      if (!this.mainManager.getGameState().isRunning) return;
 
       // BlockInteractionLogger に処理を委譲
       // BlockInteractionLogger は詳細なログ処理を行い、内部で logAction を呼び出す
-      const blockLogger = this.gameManager.getBlockInteractionLogger();
+      const blockLogger = this.mainManager.getBlockInteractionLogger();
       if (blockLogger) {
         blockLogger.handlePlayerInteraction(event);
       } else {
@@ -328,7 +331,7 @@ export class LogManager {
    */
   private createGameTimeStamp(): GameTimeStamp {
     const realTime = Date.now();
-    const gameTime = this.gameManager.getTimerManager().getGameTime();
+    const gameTime = this.mainManager.getTimerManager().getGameTime();
     return {
       realTime,
       gameTime,
@@ -495,7 +498,10 @@ export class LogManager {
       }
       this.reset();
     } catch (error) {
-      console.error("LogManagerの解放中にエラーが発生しました:", error);
+      console.error(
+        "PlayerActionLogMangerの解放中にエラーが発生しました:",
+        error,
+      );
     }
   }
 }

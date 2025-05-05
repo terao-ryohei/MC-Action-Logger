@@ -1,5 +1,5 @@
 import { ActionLoggerModule } from "../ActionLoggerModule";
-import { LogLevel } from "../types";
+import { LogLevel } from "../types/types";
 
 /**
  * 基本的な使用例
@@ -30,12 +30,12 @@ export function basicExample(): void {
     startItems: [],
   });
 
-  // ゲーム開始
-  logger.startGame();
+  // ログ回収開始
+  logger.start();
 
-  // ゲーム終了時の処理
+  // ログ回収終了時の処理
   setTimeout(() => {
-    logger.stopGame();
+    logger.stop();
     logger.dispose();
   }, 1800000); // 30分後
 }

@@ -1,27 +1,29 @@
 import { world, Player, type ItemUseBeforeEvent } from "@minecraft/server";
-import { CLOCK_ITEM_ID, type GameState, GAME_CONSTANTS } from "../types";
+import { type GameState, GAME_CONSTANTS } from "../types/types";
 import { TimerManager } from "./TimerManager";
-import { LogManager } from "./LogManager";
+import { PlayerActionLogManger } from "./PlayerActionLogManager";
 import { UIManager } from "./UIManager";
 import { BlockInteractionLogger } from "./BlockInteractionLogger";
 import { ScriptEventLogger } from "./ScriptEventLogger";
-import { PlayerStateChangeLogger } from "./PlayerStateChangeLogger";
+import { PlayerStateLogger } from "./PlayerStateLogger";
 import { EntityLifecycleLogger } from "./EntityLifecycleLogger";
 import type { IBlockInteractionLogger } from "./interfaces/IBlockInteractionLogger";
 import type { IScriptEventLogger } from "./interfaces/IScriptEventLogger";
+import { ConfigManager } from "../config/ConfigManager";
 
 /**
- * ゲーム全体の状態を管理するクラス
+ * ログ回収全体の状態を管理するクラス
  */
-export class GameManager {
-  private static instance: GameManager | null = null;
+export class MainManager {
+  private static instance: MainManager | null = null;
   private gameState: GameState;
   private timerManager: TimerManager;
-  private logManager: LogManager;
+  private playerActionLogManger: PlayerActionLogManger;
   private uiManager: UIManager;
+  private configManager: ConfigManager;
   private blockInteractionLogger: BlockInteractionLogger;
   private scriptEventLogger: ScriptEventLogger;
-  private playerStateChangeLogger: PlayerStateChangeLogger;
+  private playerStateLogger: PlayerStateLogger;
   private entityLifecycleLogger: EntityLifecycleLogger;
   private eventUnsubscribe: (() => void) | null = null;
 
@@ -34,34 +36,43 @@ export class GameManager {
 
     try {
       this.timerManager = new TimerManager(this);
-      this.logManager = new LogManager(this);
-      this.blockInteractionLogger = new BlockInteractionLogger(this.logManager);
+      this.playerActionLogManger = new PlayerActionLogManger(this);
+      this.blockInteractionLogger = new BlockInteractionLogger(
+        this.playerActionLogManger,
+      );
       // 各種ロガーの初期化
-      this.scriptEventLogger = new ScriptEventLogger(this.logManager, this, {
-        maxHistorySize: 1000,
-        maxStateAge: 3600000, // 1時間
-      });
-      this.playerStateChangeLogger = new PlayerStateChangeLogger(
-        this.logManager,
+      this.scriptEventLogger = new ScriptEventLogger(
+        this.playerActionLogManger,
+        this,
+        {
+          maxHistorySize: 1000,
+          maxStateAge: 3600000, // 1時間
+        },
+      );
+      this.playerStateLogger = new PlayerStateLogger(
+        this.playerActionLogManger,
         this,
       );
-      this.entityLifecycleLogger = new EntityLifecycleLogger(this.logManager);
+      this.entityLifecycleLogger = new EntityLifecycleLogger(
+        this.playerActionLogManger,
+      );
       this.uiManager = new UIManager(this);
+      this.configManager = ConfigManager.getInstance();
       this.initializeEventHandlers();
     } catch (error) {
-      console.error("GameManagerの初期化中にエラーが発生しました:", error);
+      console.error("MainManagerの初期化中にエラーが発生しました:", error);
       throw error;
     }
   }
 
   /**
-   * GameManagerのシングルトンインスタンスを取得
+   * MainManagerのシングルトンインスタンスを取得
    */
-  public static getInstance(): GameManager {
-    if (!GameManager.instance) {
-      GameManager.instance = new GameManager();
+  public static getInstance(): MainManager {
+    if (!MainManager.instance) {
+      MainManager.instance = new MainManager();
     }
-    return GameManager.instance;
+    return MainManager.instance;
   }
 
   /**
@@ -84,28 +95,28 @@ export class GameManager {
     const player = event.source;
     if (!(player instanceof Player)) return;
 
-    if (!this.isClockItem(event.itemStack)) {
-      return;
-    }
-
     if (this.gameState.isRunning) {
-      player.sendMessage("§cゲームは既に実行中です！");
+      player.sendMessage("§cログ回収は既に実行中です！");
       event.cancel = true;
       return;
     }
 
-    this.startGame();
+    if (
+      this.configManager
+        .getConfig()
+        .startItems.some((item) => item.itemId === event.itemStack.typeId)
+    ) {
+      this.startGame();
+      return;
+    }
+
+    console.warn(
+      `ログ回収開始アイテムではありません: ${event.itemStack.typeId} by ${player.name}`,
+    );
   }
 
   /**
-   * 時計アイテムかどうかの判定
-   */
-  private isClockItem(item: { typeId: string }): boolean {
-    return item?.typeId === CLOCK_ITEM_ID;
-  }
-
-  /**
-   * ゲーム状態の更新
+   * ログ回収状態の更新
    */
   private updateGameState(newState: Partial<GameState>): void {
     this.gameState = {
@@ -126,35 +137,53 @@ export class GameManager {
   }
 
   /**
-   * ゲームの開始処理
+   * ログ回収の開始処理
    */
-  private startGame(): void {
+  public startGame(): void {
     try {
+      // タイマーの状態をチェック
+      if (this.gameState.isRunning) {
+        console.warn("ログ回収は既に実行中です");
+        return;
+      }
+
+      // ログ回収状態を更新
       this.updateGameState({
         isRunning: true,
         startTime: Date.now(),
         remainingTime: GAME_CONSTANTS.GAME_DURATION,
       });
 
-      this.logManager.reset();
-      this.timerManager.start();
-      // 各種ロガーの初期化
+      // 各マネージャーをリセット
+      this.playerActionLogManger.reset();
       this.scriptEventLogger.reset();
-      this.playerStateChangeLogger.initialize();
+      this.playerStateLogger.initialize();
 
-      world.sendMessage("§aゲームが開始されました！");
+      // タイマーを最後に起動
+      try {
+        this.timerManager.start();
+      } catch (error) {
+        console.error("タイマーの起動に失敗しました:", error);
+        this.updateGameState({
+          isRunning: false,
+          remainingTime: GAME_CONSTANTS.GAME_DURATION,
+        });
+        throw error;
+      }
+
+      world.sendMessage("§aログ回収が開始されました！");
     } catch (error) {
-      console.error("ゲーム開始処理中にエラーが発生しました:", error);
+      console.error("ログ回収開始処理中にエラーが発生しました:", error);
       this.updateGameState({
         isRunning: false,
         remainingTime: GAME_CONSTANTS.GAME_DURATION,
       });
-      world.sendMessage("§cゲームの開始に失敗しました。");
+      world.sendMessage("§cログ回収の開始に失敗しました。");
     }
   }
 
   /**
-   * ゲームの終了処理
+   * ログ回収の終了処理
    */
   public endGame(): void {
     try {
@@ -162,10 +191,10 @@ export class GameManager {
       this.timerManager.stop();
       this.uiManager.distributeResults();
 
-      world.sendMessage("§eゲームが終了しました！");
+      world.sendMessage("§eログ回収が終了しました！");
     } catch (error) {
-      console.error("ゲーム終了処理中にエラーが発生しました:", error);
-      world.sendMessage("§cゲームの終了処理中にエラーが発生しました。");
+      console.error("ログ回収終了処理中にエラーが発生しました:", error);
+      world.sendMessage("§cログ回収の終了処理中にエラーが発生しました。");
     }
   }
 
@@ -179,27 +208,27 @@ export class GameManager {
     }
 
     this.timerManager?.stop();
-    this.logManager?.dispose();
+    this.playerActionLogManger?.dispose();
     this.blockInteractionLogger?.dispose();
     // 各種ロガーのdispose
     this.scriptEventLogger?.dispose();
-    this.playerStateChangeLogger?.dispose();
+    this.playerStateLogger?.dispose();
     this.entityLifecycleLogger?.dispose();
-    GameManager.instance = null;
+    MainManager.instance = null;
   }
 
   /**
-   * ゲーム状態の取得
+   * ログ回収状態の取得
    */
   public getGameState(): GameState {
     return { ...this.gameState };
   }
 
   /**
-   * LogManagerの取得
+   * PlayerActionLogMangerの取得
    */
-  public getLogManager(): LogManager {
-    return this.logManager;
+  public getPlayerActionLogManger(): PlayerActionLogManger {
+    return this.playerActionLogManger;
   }
 
   /**
@@ -233,10 +262,10 @@ export class GameManager {
   }
 
   /**
-   * PlayerStateChangeLoggerの取得
+   * PlayerStateLoggerの取得
    */
-  public getPlayerStateChangeLogger(): PlayerStateChangeLogger {
-    return this.playerStateChangeLogger;
+  public getPlayerStateLogger(): PlayerStateLogger {
+    return this.playerStateLogger;
   }
 
   /**

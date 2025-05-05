@@ -4,7 +4,7 @@ import {
   LogLevel,
   ActionTypeFilter,
   TimeRangeFilter,
-} from "../types";
+} from "../types/types";
 
 /**
  * カスタム設定の使用例
@@ -49,24 +49,24 @@ export function customConfigExample(): void {
     startItems: [
       {
         itemId: "minecraft:clock",
-        displayName: "ゲーム開始アイテム",
+        displayName: "ログ回収開始アイテム",
         canBeUsedByNonOp: true,
       },
     ],
   });
 
-  // ゲーム開始
-  logger.startGame();
+  // ログ回収開始
+  logger.start();
 
   // 設定の動的更新例
-  setTimeout(() => {
-    logger.updateConfig({
-      filters: {
-        minLogLevel: LogLevel.INFO, // ログレベルを上げる
-        excludedActionTypes: [], // 除外フィルターをクリア
-        includedActionTypes: [], // 必要に応じて空配列を設定
-        customFilters: [], // 必要に応じて空配列を設定
-      },
-    });
-  }, 1800000); // 30分後に設定を更新
+  //   setTimeout(() => {
+  //     logger.updateConfig({
+  //       filters: {
+  //         minLogLevel: LogLevel.INFO, // ログレベルを上げる
+  //         excludedActionTypes: [], // 除外フィルターをクリア
+  //         includedActionTypes: [], // 必要に応じて空配列を設定
+  //         customFilters: [], // 必要に応じて空配列を設定
+  //       },
+  //     });
+  //   }, 1800000); // 30分後に設定を更新
 }

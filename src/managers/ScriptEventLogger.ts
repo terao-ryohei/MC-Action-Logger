@@ -1,6 +1,6 @@
-import { ActionType } from "../types";
-import type { LogManager } from "./LogManager";
-import type { GameManager } from "./GameManager";
+import { ActionType } from "../types/types";
+import type { PlayerActionLogManger } from "./PlayerActionLogManager";
+import type { MainManager } from "./MainManager";
 import type {
   IScriptEventLogger,
   ScriptEventLoggerOptions,
@@ -18,8 +18,8 @@ import type {
  * スクリプトイベントを管理するクラス
  */
 export class ScriptEventLogger implements IScriptEventLogger {
-  private readonly logManager: LogManager;
-  private readonly gameManager: GameManager;
+  private readonly playerActionLogManger: PlayerActionLogManger;
+  private readonly mainManager: MainManager;
   private readonly options: Required<ScriptEventLoggerOptions>;
   private readonly eventDefinitions = new Map<string, EventDefinition>();
   private readonly eventStates = new Map<string, EventState>();
@@ -28,18 +28,18 @@ export class ScriptEventLogger implements IScriptEventLogger {
   private isPaused = false;
 
   constructor(
-    logManager: LogManager,
-    gameManager: GameManager,
+    playerActionLogManger: PlayerActionLogManger,
+    mainManager: MainManager,
     options?: ScriptEventLoggerOptions,
   ) {
-    this.logManager = logManager;
-    this.gameManager = gameManager;
+    this.playerActionLogManger = playerActionLogManger;
+    this.mainManager = mainManager;
     this.options = {
       maxHistorySize: options?.maxHistorySize ?? 1000,
       maxStateAge: options?.maxStateAge ?? 3600000, // 1時間
       defaultFormatters: options?.defaultFormatters ?? {},
     };
-    this.isEnabled = this.gameManager.getGameState().isRunning;
+    this.isEnabled = this.mainManager.getGameState().isRunning;
   }
 
   /**
@@ -49,7 +49,7 @@ export class ScriptEventLogger implements IScriptEventLogger {
     try {
       if (!this.isEnabled) {
         console.warn(
-          "ゲームが実行中でないため、イベントは記録されません:",
+          "ログ回収が実行中でないため、イベントは記録されません:",
           event.eventId,
         );
         return;
@@ -69,7 +69,7 @@ export class ScriptEventLogger implements IScriptEventLogger {
       // GameTimeStampの生成
       const timestamp = {
         realTime: Date.now(),
-        gameTime: this.gameManager.getTimerManager().getGameTime(),
+        gameTime: this.mainManager.getTimerManager().getGameTime(),
       };
 
       // イベント状態の更新
@@ -103,15 +103,19 @@ export class ScriptEventLogger implements IScriptEventLogger {
       }
       this.eventHistory.push(record);
 
-      // LogManagerにイベントを記録
-      this.logManager.logAction(event.source.id, ActionType.INTERACT, {
-        eventId: event.eventId,
-        category: definition.category,
-        parameters: Object.fromEntries(event.parameters),
-        position: event.position,
-        result: event.result,
-        details: formattedMessage,
-      });
+      // PlayerActionLogMangerにイベントを記録
+      this.playerActionLogManger.logAction(
+        event.source.id,
+        ActionType.INTERACT,
+        {
+          eventId: event.eventId,
+          category: definition.category,
+          parameters: Object.fromEntries(event.parameters),
+          position: event.position,
+          result: event.result,
+          details: formattedMessage,
+        },
+      );
     } catch (error) {
       console.error("イベント記録エラー:", error);
       throw error;
@@ -234,7 +238,7 @@ export class ScriptEventLogger implements IScriptEventLogger {
   public reset(): void {
     this.eventHistory.length = 0;
     this.eventStates.clear();
-    this.isEnabled = this.gameManager.getGameState().isRunning;
+    this.isEnabled = this.mainManager.getGameState().isRunning;
   }
 
   /**
@@ -260,7 +264,7 @@ export class ScriptEventLogger implements IScriptEventLogger {
           // 最新のログを取得（デフォルト10件）
           const limit = args[0] ? Number.parseInt(args[0], 10) : 10;
           const events = this.getLatestEvents(limit);
-          this.logManager.logAction("system", ActionType.INTERACT, {
+          this.playerActionLogManger.logAction("system", ActionType.INTERACT, {
             eventId: "scriptlog_show",
             details: `最新の${limit}件のログを表示`,
             result: { success: true, output: { value: events.length } },
@@ -269,7 +273,7 @@ export class ScriptEventLogger implements IScriptEventLogger {
         }
         case "history": {
           const events = this.getAllEvents();
-          this.logManager.logAction("system", ActionType.INTERACT, {
+          this.playerActionLogManger.logAction("system", ActionType.INTERACT, {
             eventId: "scriptlog_history",
             details: "全ログ履歴を表示",
             result: { success: true, output: { value: events.length } },
@@ -278,7 +282,7 @@ export class ScriptEventLogger implements IScriptEventLogger {
         }
         case "stats": {
           const stats = this.getStats();
-          this.logManager.logAction("system", ActionType.INTERACT, {
+          this.playerActionLogManger.logAction("system", ActionType.INTERACT, {
             eventId: "scriptlog_stats",
             details: "統計情報を表示",
             result: { success: true, output: { value: stats } },
@@ -288,7 +292,7 @@ export class ScriptEventLogger implements IScriptEventLogger {
         case "search": {
           const keyword = args[0] || "";
           const events = this.searchLogs(keyword);
-          this.logManager.logAction("system", ActionType.INTERACT, {
+          this.playerActionLogManger.logAction("system", ActionType.INTERACT, {
             eventId: "scriptlog_search",
             details: `キーワード "${keyword}" で検索`,
             result: { success: true, output: { value: events.length } },
@@ -298,7 +302,7 @@ export class ScriptEventLogger implements IScriptEventLogger {
         case "filter": {
           const category = args[0] || "";
           const events = this.filterLogsByCategory(category);
-          this.logManager.logAction("system", ActionType.INTERACT, {
+          this.playerActionLogManger.logAction("system", ActionType.INTERACT, {
             eventId: "scriptlog_filter",
             details: `カテゴリー "${category}" でフィルター`,
             result: { success: true, output: { value: events.length } },
@@ -309,7 +313,7 @@ export class ScriptEventLogger implements IScriptEventLogger {
           const startTime = args[0] ? Number.parseInt(args[0], 10) : 0;
           const endTime = args[1] ? Number.parseInt(args[1], 10) : Date.now();
           const events = this.getEventsByTimeRange(startTime, endTime);
-          this.logManager.logAction("system", ActionType.INTERACT, {
+          this.playerActionLogManger.logAction("system", ActionType.INTERACT, {
             eventId: "scriptlog_time",
             details: `期間 ${startTime} から ${endTime} までのログを表示`,
             result: { success: true, output: { value: events.length } },
@@ -319,7 +323,7 @@ export class ScriptEventLogger implements IScriptEventLogger {
         case "player": {
           const playerName = args[0] || "";
           const events = this.filterLogsByPlayer(playerName);
-          this.logManager.logAction("system", ActionType.INTERACT, {
+          this.playerActionLogManger.logAction("system", ActionType.INTERACT, {
             eventId: "scriptlog_player",
             details: `プレイヤー "${playerName}" のログを表示`,
             result: { success: true, output: { value: events.length } },
@@ -328,7 +332,7 @@ export class ScriptEventLogger implements IScriptEventLogger {
         }
         case "pause": {
           this.pause();
-          this.logManager.logAction("system", ActionType.INTERACT, {
+          this.playerActionLogManger.logAction("system", ActionType.INTERACT, {
             eventId: "scriptlog_pause",
             details: "ログ記録を一時停止",
             result: { success: true },
@@ -337,7 +341,7 @@ export class ScriptEventLogger implements IScriptEventLogger {
         }
         case "resume": {
           this.resume();
-          this.logManager.logAction("system", ActionType.INTERACT, {
+          this.playerActionLogManger.logAction("system", ActionType.INTERACT, {
             eventId: "scriptlog_resume",
             details: "ログ記録を再開",
             result: { success: true },
@@ -346,7 +350,7 @@ export class ScriptEventLogger implements IScriptEventLogger {
         }
         case "clear": {
           this.reset();
-          this.logManager.logAction("system", ActionType.INTERACT, {
+          this.playerActionLogManger.logAction("system", ActionType.INTERACT, {
             eventId: "scriptlog_clear",
             details: "ログをクリア",
             result: { success: true },
