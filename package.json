@@ -1,6 +1,6 @@
 {
 	"name": "minecraft-action-logger",
-	"version": "0.5.2",
+	"version": "0.6.0",
 	"description": "プレイヤーの行動を記録して表示するMinecraftアドオン",
 	"scripts": {
 		"build": "tsc -p tsconfig.json && node scripts/build.mjs && node scripts/makeZip.mjs && node scripts/makeMcaddon.mjs",
