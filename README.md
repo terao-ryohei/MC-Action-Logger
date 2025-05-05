@@ -24,7 +24,6 @@
 
 - Minecraft 統合版 1.20.0以降
 - ベースゲームバージョン: 1.20.60以降
-- 実験的ゲームプレイ: `Beta APIs`を有効化
 
 ## インストール方法
 
@@ -158,8 +157,8 @@ logger.updateConfig({
 });
 
 // ゲームの停止とリソース解放
-logger.stopGame();
-logger.dispose();
+logger.start();
+logger.stop();
 ```
 
 ### 環境設定
@@ -187,7 +186,7 @@ MITライセンスで提供されています。詳細は[LICENSE](LICENSE)フ�
 
 ## Overview
 
-This addon is a tool that automatically records player actions in Minecraft and makes it easy to review in-game activities. It provides game management through a clock item and detailed logging functionality.
+This addon automatically records player actions in Minecraft, making it easy to review in-game activities. It provides game management with a clock item and detailed logging features.
 
 ## Key Features
 
@@ -203,7 +202,6 @@ This addon is a tool that automatically records player actions in Minecraft and 
 
 - Minecraft Bedrock Edition 1.20.0 or later
 - Base game version: 1.20.60 or later
-- Experimental Gameplay: Enable `Beta APIs`
 
 ## Installation
 
@@ -220,15 +218,15 @@ This addon is a tool that automatically records player actions in Minecraft and 
    - Obtain the clock item
    - Right-click to start the game
    - Timer starts automatically
-   - Remaining time shown in bottom
+   - Remaining time is displayed at the bottom of the screen
 
 2. Ending the game:
-   - Automatically ends when timer reaches 0
+   - The game ends automatically when the timer reaches 0
 
 ### Using Items
 
 - Clock item:
-  - Right-click: Start game
+  - Right-click: Start the game
 
 - Paper item (Log book):
   - Right-click: Display logs
@@ -238,16 +236,16 @@ This addon is a tool that automatically records player actions in Minecraft and 
 ### Basic Commands
 ```
 /scriptevent scriptlog:show [count]    - Show recent logs (default 10)
-/scriptevent scriptlog:history        - Show all logs
-/scriptevent scriptlog:stats         - Show statistics
+/scriptevent scriptlog:history         - Show all logs
+/scriptevent scriptlog:stats           - Show statistics
 ```
 
 ### Search & Filter
 ```
-/scriptevent scriptlog:search <keyword>  - Keyword search
-/scriptevent scriptlog:filter <category> - Filter by category
-/scriptevent scriptlog:time <start> <end> - Show by time range
-/scriptevent scriptlog:player <name>     - Filter by player
+/scriptevent scriptlog:search <keyword>    - Search by keyword
+/scriptevent scriptlog:filter <category>   - Filter by category
+/scriptevent scriptlog:time <start> <end>  - Show logs by time range
+/scriptevent scriptlog:player <name>       - Filter by player
 ```
 
 ### Management Commands
@@ -260,14 +258,89 @@ This addon is a tool that automatically records player actions in Minecraft and 
 ## Troubleshooting
 
 ### If Commands Are Not Working
-1. Verify experimental gameplay is enabled
-2. Verify addon is properly applied
-3. Open "Creator Settings" and open content-logs, then check error
+1. Make sure experimental gameplay is enabled
+2. Confirm the addon is properly applied
+3. Open the Creator Content Log and check for errors
 
 ## Developer Information
 
+### Using as a Submodule
+
+1. Add as a submodule to your project:
+```bash
+git submodule add https://github.com/yourusername/minecraft-action-logger ActionLogger
+```
+
+2. Initialize the module:
+```typescript
+import { ActionLoggerModule } from "./ActionLogger/src/ActionLoggerModule";
+
+// Initialize the module
+const logger = ActionLoggerModule.getInstance();
+logger.initialize({
+  gameTime: { maxDuration: 3600 },  // 1 hour
+  filters: {
+    minLogLevel: "info",
+    customFilters: ["block", "player"]
+  }
+});
+
+// Set up export functionality
+logger.initializeExporter({
+  format: "json",
+  outputPath: "./logs",
+  compression: true
+});
+
+// Start the game
+logger.start();
+```
+
+### Configuration Options
+
+```typescript
+interface LoggerConfiguration {
+  gameTime: {
+    maxDuration: number;      // Maximum game time (seconds)
+    warningTime?: number;     // Time remaining to show warning (seconds)
+  };
+  filters: {
+    minLogLevel: "debug" | "info" | "warn" | "error";
+    customFilters?: string[];  // Enabled filters
+  };
+}
+
+interface ExportConfiguration {
+  format: "json" | "csv";     // Output format
+  outputPath: string;         // Output directory
+  compression?: boolean;      // Enable/disable compression
+  filename?: string;          // Output file name
+}
+```
+
+### Export Example
+
+```typescript
+// Export in JSON format
+await logger.exportLogs();
+
+// Get current logs
+const currentLogs = logger.getLogs();
+
+// Update configuration
+logger.updateConfig({
+  filters: {
+    minLogLevel: "warn"
+  }
+});
+
+// Stop the game and release resources
+logger.start();
+logger.stop();
+```
+
 ### Environment Setup
-1. Create `.env` file in project root:
+1. Create a `.env` file in the project root:
 ```
 WIN_OUTPUT_DIR=C:/Path/To/Your/Minecraft/development_behavior_packs
 WIN_OUTPUT_DIR2=C:/Path/To/Your/Minecraft/development_resource_packs
@@ -276,7 +349,7 @@ WIN_OUTPUT_DIR2=C:/Path/To/Your/Minecraft/development_resource_packs
 ### Important Notes
 - Only one game can run at a time
 - Data is retained when players leave
-- Game automatically ends when all players exit
+- The game automatically ends when all players exit
 - Large amounts of logging may impact performance
 
 ## License
