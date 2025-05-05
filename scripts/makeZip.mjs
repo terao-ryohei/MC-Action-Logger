@@ -7,13 +7,6 @@ config();
 
 const { WIN_OUTPUT_DIR, WIN_OUTPUT_DIR2 } = process.env;
 
-if (!WIN_OUTPUT_DIR && !WIN_OUTPUT_DIR2) {
-  console.error(
-    "必要な環境変数が設定されていません。.envファイルを確認してください。",
-  );
-  process.exit(1);
-}
-
 async function makeZip() {
   try {
     const sourcePath = "./dist";
@@ -35,4 +28,11 @@ async function makeZip() {
   }
 }
 
-makeZip();
+if (!WIN_OUTPUT_DIR && !WIN_OUTPUT_DIR2) {
+  console.warn(
+    "必要な環境変数が設定されていません。.envファイルを確認してください。",
+  );
+  process.exit(1);
+} else {
+  makeZip();
+}
