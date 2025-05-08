@@ -1,9 +1,7 @@
 import type {
   PlayerLog,
-  PlayerAction,
   ExportConfiguration,
   ExportData,
-  ExportMetadata,
   GameTimeStamp,
 } from "../types/types";
 
