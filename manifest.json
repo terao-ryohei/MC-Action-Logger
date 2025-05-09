@@ -7,7 +7,7 @@
 		"version": [
 			0,
 			6,
-			0
+			1
 		],
 		"min_engine_version": [
 			1,
@@ -23,7 +23,7 @@
 			"version": [
 				0,
 				6,
-				0
+				1
 			],
 			"entry": "scripts/main.js"
 		}
@@ -31,7 +31,7 @@
 	"dependencies": [
 		{
 			"module_name": "@minecraft/server",
-			"version": "1.18.0"
+			"version": "1.19.0"
 		},
 		{
 			"module_name": "@minecraft/server-ui",

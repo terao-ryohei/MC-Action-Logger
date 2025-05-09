@@ -1,6 +1,6 @@
 {
 	"name": "minecraft-action-logger",
-	"version": "0.6.0",
+	"version": "0.6.1",
 	"description": "プレイヤーの行動を記録して表示するMinecraftアドオン",
 	"scripts": {
 		"build": "tsc -p tsconfig.json && node scripts/build.mjs && node scripts/makeZip.mjs && node scripts/makeMcaddon.mjs",
@@ -41,7 +41,7 @@
 		]
 	},
 	"dependencies": {
-		"@minecraft/server": "^1.18.0",
+		"@minecraft/server": "^1.19.0",
 		"@minecraft/server-ui": "^1.3.0"
 	}
 }

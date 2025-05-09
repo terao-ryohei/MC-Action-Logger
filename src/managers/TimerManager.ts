@@ -1,4 +1,4 @@
-import { world, system, type Player } from "@minecraft/server";
+import { world, system } from "@minecraft/server";
 import type { MainManager } from "./MainManager";
 import { GAME_CONSTANTS, type GameTimeConfig } from "../types/types";
 
@@ -9,9 +9,6 @@ export class TimerManager {
   private mainManager: MainManager;
   private tickCallback: () => void;
   private runScheduleId: number | undefined;
-  private lastWarningTime = 0;
-  private gameStartTime = 0; // ゲーム開始時のタイムスタンプ
-  private readonly WARNING_COOLDOWN = 1000; // 警告音のクールダウン（ミリ秒）
   private gameTimeConfig: GameTimeConfig;
   private isEnabled = false; // タイマーの有効/無効状態を管理
 
@@ -42,7 +39,6 @@ export class TimerManager {
         return;
       }
 
-      this.gameStartTime = Date.now() + this.gameTimeConfig.initialTime;
       console.log("タイマーを開始します");
 
       // 1秒ごとにtickを実行
@@ -88,80 +84,9 @@ export class TimerManager {
 
       // MainManagerを通じて残り時間を更新
       this.mainManager.updateRemainingTime(gameState.remainingTime - 1);
-
-      // 残り時間の表示
-      this.displayTime(gameState.remainingTime - 1);
     } catch (error) {
       console.error("タイマーのtick処理中にエラーが発生しました:", error);
       this.stop();
-    }
-  }
-
-  /**
-   * 残り時間の表示
-   */
-  private displayTime(remainingSeconds: number): void {
-    try {
-      const minutes = Math.floor(remainingSeconds / 60);
-      const seconds = remainingSeconds % 60;
-      const timeText = `§e残り時間: ${minutes}:${seconds.toString().padStart(2, "0")}`;
-
-      // 一括でプレイヤー取得
-      const players = world.getAllPlayers();
-      if (players.length === 0) return;
-
-      // 表示とサウンド処理
-      for (const player of players) {
-        this.updatePlayerDisplay(player, timeText, remainingSeconds);
-      }
-    } catch (error) {
-      console.error("残り時間の表示中にエラーが発生しました:", error);
-    }
-  }
-
-  /**
-   * プレイヤーごとの表示更新
-   */
-  private updatePlayerDisplay(
-    player: Player,
-    timeText: string,
-    remainingSeconds: number,
-  ): void {
-    try {
-      // アクションバーに表示
-      player.onScreenDisplay.setActionBar(timeText);
-
-      // 残り10秒以下の場合は警告音を鳴らす
-      if (remainingSeconds <= 10) {
-        this.playWarningSound(player);
-      }
-    } catch (error) {
-      console.error(
-        `プレイヤー ${player.name} の表示更新中にエラーが発生しました:`,
-        error,
-      );
-    }
-  }
-
-  /**
-   * 警告音の再生
-   */
-  private playWarningSound(player: Player): void {
-    try {
-      const now = Date.now();
-      // クールダウンチェック
-      if (now - this.lastWarningTime < this.WARNING_COOLDOWN) {
-        return;
-      }
-
-      player.playSound("note.pling", {
-        pitch: 1.0,
-        volume: 1.0,
-      });
-
-      this.lastWarningTime = now;
-    } catch (error) {
-      console.error("警告音の再生中にエラーが発生しました:", error);
     }
   }
 
